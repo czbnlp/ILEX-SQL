@@ -214,12 +214,6 @@ LPE-SQL/data/
 *.mdb
 *.accdb
 
-# Test results and temporary files
-*_results.json
-test_*.json
-*_test.*
-temp_*
-
 # Model files and checkpoints
 *.pth
 *.pt
@@ -286,7 +280,6 @@ yarn-error.log*
 
 # Large data files
 *.csv
-*.json
 *.parquet
 *.hdf5
 *.pkl
@@ -308,14 +301,3 @@ outputs/
 *.jpeg
 *.gif
 *.pdf
-
-# Temporary and test files
-tmp/
-temp/
-test/
-tests/
-*.tmp
-*.temp
-*.test
-*.bak
-*.backup
