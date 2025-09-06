@@ -1,0 +1,20 @@
+# 核心依赖
+pyyaml>=6.0
+requests>=2.28.0
+pandas>=1.5.0
+sqlalchemy>=1.4.0
+numpy>=1.21.0
+
+# 环境变量管理
+python-dotenv>=1.0.0
+
+# 可选依赖（用于更强大的功能）
+# OpenAI API (如果使用OpenAI模型)
+openai>=1.0.0
+
+# Anthropic API (如果使用Claude模型)
+anthropic>=0.3.0
+
+# 数据库连接器
+# psycopg2-binary>=2.9.0  # PostgreSQL
+# pymysql>=1.0.2        # MySQL
