@@ -1,6 +1,6 @@
 # ILEX-SQL 运行指南
 
-本文档介绍如何设置和运行ILEX-SQL双模式智能SQL生成系统。
+本文档介绍如何设置和运行ILEX-SQL双模式智能SQL生成系统，支持本地vLLM部署和云端API两种模式。
 
 ## 1. 环境准备
 
@@ -19,387 +19,379 @@ cd ILEX-SQL
 pip install -r requirements.txt
 ```
 
-如果requirements.txt不存在，请手动安装以下依赖：
+### 1.3 可选：vLLM安装（本地模型）
+如果计划使用本地模型，需要安装vLLM：
 ```bash
-pip install pyyaml requests openai sqlalchemy pandas numpy
+pip install vllm
 ```
 
 ## 2. 配置设置
 
-### 2.1 模型API配置
+### 2.1 环境变量配置
 
-ILEX-SQL支持多种LLM模型，你需要在配置文件中设置API密钥和相关参数。
-
-#### 2.1.1 OpenAI API配置
-创建一个`.env`文件在项目根目录：
+复制环境变量模板：
 ```bash
-# 创建环境变量文件
-touch .env
+cp .env.example .env
 ```
 
-在`.env`文件中添加：
+根据使用的模型类型，选择相应的配置：
+
+#### 2.1.1 本地vLLM模型配置
 ```env
-# OpenAI API配置
+# 本地模型配置（vLLM部署）
+LOCAL_MODEL=Qwen3-8B_v2_p2
+LOCAL_API_KEY=EMPTY
+LOCAL_TIMEOUT=1000
+LOCAL_BASE_URLS=http://localhost:8882/v1,http://localhost:8883/v1
+
+# 数据库配置
+DATABASE_URL=sqlite:///database.db
+
+# 日志级别
+LOG_LEVEL=INFO
+```
+
+#### 2.1.2 OpenAI API配置（可选）
+```env
+# OpenAI API配置（可选，如果使用本地模型则不需要）
 OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4  # 或 gpt-3.5-turbo
+OPENAI_MODEL=gpt-4
 OPENAI_BASE_URL=https://api.openai.com/v1
-```
 
-#### 2.1.2 其他LLM服务配置
-如果你使用其他LLM服务（如Claude、Gemini等），请相应修改配置：
+# 数据库配置
+DATABASE_URL=sqlite:///database.db
 
-```env
-# Claude API配置
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
-ANTHROPIC_MODEL=claude-3-sonnet-20240229
-
-# 或其他自定义API
-CUSTOM_API_URL=your_custom_api_url
-CUSTOM_API_KEY=your_custom_api_key
+# 日志级别
+LOG_LEVEL=INFO
 ```
 
 ### 2.2 数据库配置
 
-在`.env`文件中添加数据库连接信息：
+系统支持多种数据库类型：
+
+#### SQLite（默认）
 ```env
-# 数据库配置
-DATABASE_URL=sqlite:///your_database.db
-# 或者使用PostgreSQL
-# DATABASE_URL=postgresql://username:password@localhost:5432/your_database
+DATABASE_URL=sqlite:///database.db
 ```
 
-### 2.3 创建自定义配置文件
+#### PostgreSQL
+```env
+DATABASE_URL=postgresql://username:password@localhost:5432/your_database
+```
 
-复制并修改配置文件：
+#### MySQL
+```env
+DATABASE_URL=mysql://username:password@localhost:3306/your_database
+```
+
+## 3. 模型部署
+
+### 3.1 本地vLLM部署（推荐）
+
+#### 3.1.1 下载模型
 ```bash
-cp config/ilex_config.yaml config/ilex_config_local.yaml
+# 示例：下载Qwen模型
+git lfs install
+git clone https://huggingface.co/Qwen/Qwen3-8B-v2
 ```
 
-在`config/ilex_config_local.yaml`中你可以调整：
-- 复杂度阈值
-- 探索步数
-- 记忆大小
-- 日志级别等参数
-
-## 3. 创建LLM连接器
-
-创建一个`llm_connector.py`文件在项目根目录：
-
-```python
-import os
-import requests
-import json
-from typing import Optional, Dict, Any
-
-class LLMConnector:
-    """LLM连接器类"""
-    
-    def __init__(self, config_path: str = "config/ilex_config.yaml"):
-        self.config = self._load_config(config_path)
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        self.model = os.getenv("OPENAI_MODEL", "gpt-4")
-        self.base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-        
-    def _load_config(self, config_path: str) -> Dict[str, Any]:
-        """加载配置文件"""
-        import yaml
-        try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                return yaml.safe_load(f)
-        except Exception as e:
-            print(f"加载配置文件失败: {e}")
-            return {}
-    
-    def __call__(self, prompt: str, **kwargs) -> str:
-        """
-        调用LLM API
-        
-        Args:
-            prompt: 输入提示词
-            
-        Returns:
-            LLM生成的响应文本
-        """
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        data = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": "你是一个专业的SQL查询生成助手。"},
-                {"role": "user", "content": prompt}
-            ],
-            "max_tokens": 2000,
-            "temperature": 0.7
-        }
-        
-        try:
-            response = requests.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=data,
-                timeout=30
-            )
-            response.raise_for_status()
-            
-            result = response.json()
-            return result["choices"][0]["message"]["content"]
-            
-        except Exception as e:
-            print(f"LLM API调用失败: {e}")
-            return "抱歉，我暂时无法处理您的请求。"
-```
-
-## 4. 创建SQL执行器
-
-创建一个`sql_executor.py`文件在项目根目录：
-
-```python
-import sqlite3
-import sqlalchemy
-from sqlalchemy import create_engine, text
-from typing import Tuple, Optional, Any
-import pandas as pd
-
-class SQLExecutor:
-    """SQL执行器类"""
-    
-    def __init__(self, database_url: str = "sqlite:///database.db"):
-        self.database_url = database_url
-        self.engine = create_engine(database_url)
-        
-    def __call__(self, sql: str, db_path: Optional[str] = None) -> Tuple[Any, Optional[str]]:
-        """
-        执行SQL查询
-        
-        Args:
-            sql: SQL查询语句
-            db_path: 数据库路径（可选）
-            
-        Returns:
-            (查询结果, 错误信息)
-        """
-        try:
-            if db_path:
-                # 如果指定了数据库路径，使用该路径
-                engine = create_engine(f"sqlite:///{db_path}")
-            else:
-                engine = self.engine
-                
-            with engine.connect() as connection:
-                result = pd.read_sql_query(text(sql), connection)
-                return result.to_dict('records'), None
-                
-        except Exception as e:
-            return None, str(e)
-    
-    def get_schema(self, table_name: Optional[str] = None) -> str:
-        """
-        获取数据库schema信息
-        
-        Args:
-            table_name: 表名（可选）
-            
-        Returns:
-            Schema信息字符串
-        """
-        try:
-            with self.engine.connect() as connection:
-                if table_name:
-                    query = f"PRAGMA table_info({table_name});"
-                    result = pd.read_sql_query(query, connection)
-                    return f"表 {table_name} 的结构:\n{result.to_string()}"
-                else:
-                    query = "SELECT name FROM sqlite_master WHERE type='table';"
-                    tables = pd.read_sql_query(query, connection)
-                    schema_info = "数据库中的表:\n"
-                    for table in tables['name']:
-                        schema_info += f"- {table}\n"
-                    return schema_info
-        except Exception as e:
-            return f"获取schema失败: {e}"
-```
-
-## 5. 运行示例
-
-创建一个`run_example.py`文件：
-
-```python
-import os
-import sys
-from dotenv import load_dotenv
-
-# 加载环境变量
-load_dotenv()
-
-# 添加项目路径到Python路径
-sys.path.append('src')
-
-from ilex_core.mode_selector import ModeSelector
-from ilex_core.exploration_engine import ExplorationEngine
-from llm_connector import LLMConnector
-from sql_executor import SQLExecutor
-
-def main():
-    """主运行函数"""
-    print("=== ILEX-SQL 双模式智能SQL生成系统 ===")
-    
-    # 初始化组件
-    print("初始化组件...")
-    llm_connector = LLMConnector()
-    sql_executor = SQLExecutor()
-    
-    # 初始化模式选择器
-    mode_selector = ModeSelector()
-    
-    # 初始化探索引擎
-    exploration_engine = ExplorationEngine(
-        llm_connector=llm_connector,
-        sql_executor=sql_executor
-    )
-    
-    # 示例问题
-    test_questions = [
-        "What is the average salary of employees?",
-        "Find the name of the employee who has the highest salary in the sales department.",
-        "First, find the manager with the highest salary, then find all employees in the same department."
-    ]
-    
-    # 获取数据库schema
-    print("\n获取数据库schema...")
-    schema = sql_executor.get_schema()
-    print(schema)
-    
-    # 处理每个问题
-    for question in test_questions:
-        print(f"\n{'='*50}")
-        print(f"问题: {question}")
-        print(f"{'='*50}")
-        
-        # 1. 评估问题复杂度并选择模式
-        print("步骤1: 评估问题复杂度...")
-        mode_decision = mode_selector.get_mode_decision(question)
-        print(f"复杂度分数: {mode_decision['complexity_score']:.3f}")
-        print(f"选择模式: {mode_decision['mode']}")
-        print(f"推理: {mode_decision['reasoning']}")
-        
-        # 2. 根据选择的模式处理问题
-        if mode_decision['use_exploration_mode']:
-            print("步骤2: 使用探索模式处理...")
-            final_sql, success, details = exploration_engine.solve_complex_question(
-                question,
-                "database.db",  # 数据库路径
-                schema
-            )
-        else:
-            print("步骤2: 使用经验模式处理...")
-            # 这里可以实现经验模式的逻辑
-            final_sql, success, details = "SELECT * FROM employees LIMIT 10;", True, {"mode": "experience"}
-        
-        # 3. 输出结果
-        if success:
-            print(f"✓ 生成的SQL: {final_sql}")
-            print("✓ 执行结果:")
-            result, error = sql_executor(final_sql)
-            if error:
-                print(f"✗ 执行错误: {error}")
-            else:
-                for i, row in enumerate(result[:5]):  # 只显示前5行
-                    print(f"  {i+1}. {row}")
-        else:
-            print("✗ 处理失败")
-            print(f"详细信息: {details}")
-
-if __name__ == "__main__":
-    main()
-```
-
-## 6. 运行项目
-
-### 6.1 设置环境变量
+#### 3.1.2 启动vLLM服务
+使用提供的部署脚本：
 ```bash
-# 复制环境变量模板
-cp .env.example .env
+# 给脚本执行权限
+chmod +x deploy_vllm.sh
 
-# 编辑.env文件，填入你的API密钥
-nano .env
+# 启动服务
+./deploy_vllm.sh
 ```
 
-### 6.2 安装依赖
+或手动启动：
 ```bash
-pip install python-dotenv
+export CUDA_VISIBLE_DEVICES="2,3"
+
+vllm serve /path/to/your/model \
+  --port 8883 \
+  --served-model-name Qwen3-8B_v2_p2 \
+  --tensor-parallel-size 2 \
+  --max-model-len 16384
 ```
 
-### 6.3 运行示例
+#### 3.1.3 验证服务
 ```bash
+# 检查服务状态
+curl http://localhost:8883/v1/models
+
+# 测试连接
+python -c "from llm_connector_local import LocalLLMConnector; connector = LocalLLMConnector(); print('连接成功' if connector.test_connection() else '连接失败')"
+```
+
+### 3.2 多服务部署（负载均衡）
+
+启动多个vLLM实例：
+```bash
+# 终端1：启动第一个服务
+export CUDA_VISIBLE_DEVICES="0,1"
+vllm serve /path/to/model --port 8882 --tensor-parallel-size 2
+
+# 终端2：启动第二个服务
+export CUDA_VISIBLE_DEVICES="2,3"
+vllm serve /path/to/model --port 8883 --tensor-parallel-size 2
+```
+
+在`.env`文件中配置：
+```env
+LOCAL_BASE_URLS=http://localhost:8882/v1,http://localhost:8883/v1
+```
+
+## 4. 运行项目
+
+### 4.1 基本运行
+
+```bash
+# 运行示例
 python run_example.py
 ```
 
-## 7. 故障排除
+### 4.2 交互模式
 
-### 7.1 常见问题
+```bash
+# 启动交互模式
+python run_example.py --interactive
+```
 
-**问题1: ModuleNotFoundError**
+在交互模式下，你可以：
+- 输入自然语言问题
+- 查看生成的SQL查询
+- 获取执行结果
+
+### 4.3 测试组件
+
+```bash
+# 测试各个组件
+python run_example.py --test
+```
+
+### 4.4 直接测试连接器
+
+```bash
+# 测试本地LLM连接器
+python llm_connector_local.py
+
+# 测试OpenAI连接器（如果配置了）
+python llm_connector.py
+```
+
+## 5. 项目结构
+
+```
+ILEX-SQL/
+├── config/
+│   └── ilex_config.yaml          # 系统配置文件
+├── src/
+│   └── ilex_core/                # 核心模块
+│       ├── mode_selector.py       # 模式选择器
+│       ├── exploration_engine.py  # 探索引擎
+│       ├── problem_decomposer.py  # 问题分解器
+│       └── execution_memory.py    # 执行记忆
+├── prompts/ilex/                  # 提示词模板
+├── llm_connector.py              # OpenAI API连接器
+├── llm_connector_local.py        # 本地vLLM连接器
+├── sql_executor.py               # SQL执行器
+├── run_example.py                # 主程序
+├── deploy_vllm.sh                # vLLM部署脚本
+├── requirements.txt              # 依赖列表
+├── .env.example                  # 环境变量模板
+├── LOCAL_MODEL_GUIDE.md          # 本地模型详细指南
+└── RUNNING_GUIDE.md             # 本文件
+```
+
+## 6. 使用示例
+
+### 6.1 简单查询
+```python
+from llm_connector_local import LocalLLMConnector
+from sql_executor import SQLExecutor
+
+# 初始化组件
+connector = LocalLLMConnector()
+executor = SQLExecutor()
+
+# 生成SQL
+prompt = "找出薪水最高的员工"
+sql = connector(prompt)
+
+# 执行SQL
+result, error = executor(sql)
+print(result)
+```
+
+### 6.2 批量处理
+```python
+from llm_connector_local import LocalLLMConnector
+
+connector = LocalLLMConnector()
+
+# 批量处理任务
+items = [
+    {"item_title": "问题1", "item_content": "内容1", "nid": 1},
+    {"item_title": "问题2", "item_content": "内容2", "nid": 2}
+]
+
+connector.batch_process(
+    items, 
+    "output.jsonl", 
+    "progress.jsonl", 
+    concurrency=10
+)
+```
+
+## 7. 配置优化
+
+### 7.1 性能配置
+在`config/ilex_config.yaml`中调整：
+
+```yaml
+ilex:
+  performance:
+    enable_caching: true          # 启用缓存
+    cache_size: 1000             # 缓存大小
+    enable_parallel_processing: false  # 并行处理
+    max_workers: 4               # 最大工作线程数
+  
+  exploration:
+    max_exploration_steps: 5     # 最大探索步数
+    timeout_per_step: 30         # 每步超时时间
+    max_retries_per_subquestion: 3 # 最大重试次数
+```
+
+### 7.2 模式选择配置
+```yaml
+ilex:
+  mode_selection:
+    complexity_threshold: 0.7    # 复杂度阈值
+    enable_exploration: true     # 启用探索模式
+    enable_complexity_analysis: true  # 启用复杂度分析
+```
+
+## 8. 故障排除
+
+### 8.1 常见问题
+
+**问题1: 本地模型连接失败**
+```bash
+# 检查vLLM服务状态
+ps aux | grep vllm
+
+# 检查端口占用
+lsof -i :8883
+
+# 检查GPU状态
+nvidia-smi
+```
+
+**问题2: CUDA内存不足**
+- 减少tensor-parallel-size
+- 使用更小的模型
+- 减少max-model-len
+
+**问题3: 导入错误**
 ```bash
 # 确保在项目根目录运行
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 python run_example.py
 ```
 
-**问题2: API密钥错误**
-- 检查`.env`文件中的API密钥是否正确
-- 确认API密钥有足够的权限
-
-**问题3: 数据库连接失败**
+**问题4: 数据库连接失败**
 - 检查数据库文件是否存在
 - 确认数据库路径配置正确
+- 检查数据库服务是否运行
 
-### 7.2 调试模式
+### 8.2 调试模式
 
-在配置文件中启用调试模式：
-```yaml
-debug:
-  enable_logging: true
-  log_level: "DEBUG"
+启用详细日志：
+```env
+LOG_LEVEL=DEBUG
 ```
 
-## 8. 扩展和自定义
-
-### 8.1 添加新的LLM支持
-修改`llm_connector.py`中的`__call__`方法来支持新的LLM服务。
-
-### 8.2 添加新的数据库支持
-修改`sql_executor.py`来支持更多数据库类型。
-
-### 8.3 自定义提示词
-修改`prompts/ilex/`目录下的提示词文件来优化系统性能。
-
-## 9. 性能优化
-
-### 9.1 缓存配置
-在配置文件中启用缓存：
+或在配置文件中：
 ```yaml
-performance:
-  enable_caching: true
-  cache_size: 1000
+ilex:
+  debug:
+    enable_logging: true
+    log_level: "DEBUG"
+    save_exploration_history: true
+    save_execution_traces: true
 ```
 
-### 9.2 并行处理
-启用并行处理以提高性能：
-```yaml
-performance:
-  enable_parallel_processing: true
-  max_workers: 4
+### 8.3 性能监控
+
+查看GPU使用情况：
+```bash
+watch -n 1 nvidia-smi
 ```
 
-## 10. 获取帮助
+监控vLLM服务：
+```bash
+# 查看服务日志
+journalctl -u vllm -f
 
-如果遇到问题，请：
-1. 检查日志输出
-2. 查看配置文件
-3. 确认API密钥和数据库连接
-4. 参考本文档的故障排除部分
+# 或直接查看进程输出
+ps aux | grep vllm
+```
+
+## 9. 高级功能
+
+### 9.1 自定义提示词
+修改`prompts/ilex/`目录下的提示词文件：
+- `complexity_analysis.txt` - 复杂度分析提示词
+- `problem_decompose.txt` - 问题分解提示词
+- `subquestion_solve.txt` - 子问题求解提示词
+- `result_synthesize.txt` - 结果合成提示词
+
+### 9.2 知识库管理
+在`src/knowledge_base/`目录下：
+- `init_correct_set.json` - 正确案例集合
+- `init_mistake_set.json` - 错误案例集合
+
+### 9.3 扩展新模型
+1. 在`llm_connector_local.py`中添加新模型支持
+2. 更新`deploy_vllm.sh`脚本
+3. 修改`LOCAL_MODEL_GUIDE.md`
+
+## 10. 最佳实践
+
+### 10.1 硬件配置推荐
+- **开发环境**: 单GPU（24GB显存）
+- **生产环境**: 多GPU（推荐4x A100/H100）
+- **内存**: 32GB以上
+- **存储**: SSD，足够存放模型文件
+
+### 10.2 性能优化建议
+1. **批量处理**: 使用`batch_process`方法提高吞吐量
+2. **缓存配置**: 启用缓存减少重复计算
+3. **并发控制**: 根据GPU内存调整并发数
+4. **模型选择**: 根据任务复杂度选择合适大小的模型
+
+### 10.3 安全建议
+1. **API密钥**: 不要在代码中硬编码API密钥
+2. **网络安全**: 在生产环境中使用HTTPS
+3. **访问控制**: 限制vLLM服务的访问权限
+4. **日志安全**: 避免在日志中记录敏感信息
+
+## 11. 获取帮助
+
+### 11.1 文档资源
+- `LOCAL_MODEL_GUIDE.md` - 本地模型详细指南
+- `README.md` - 项目概述
+- `config/ilex_config.yaml` - 配置文件说明
+
+### 11.2 社区支持
+- GitHub Issues: https://github.com/czbnlp/ILEX-SQL/issues
+- Wiki: https://github.com/czbnlp/ILEX-SQL/wiki
+
+### 11.3 联系方式
+如有问题或建议，请通过GitHub Issues联系我们。
+
+---
 
 祝使用愉快！
