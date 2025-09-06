@@ -1,0 +1,154 @@
+{
+  "statistics": {
+    "total": 10,
+    "correct": 2,
+    "timeout": 0,
+    "error": 0,
+    "by_difficulty": {
+      "simple": {
+        "total": 8,
+        "correct": 2
+      },
+      "moderate": {
+        "total": 2,
+        "correct": 0
+      },
+      "challenging": {
+        "total": 0,
+        "correct": 0
+      }
+    }
+  },
+  "results": [
+    {
+      "question_id": 0,
+      "question": "What is the highest eligible free rate for K-12 students in the schools in Alameda County?",
+      "db_id": "california_schools",
+      "difficulty": "simple",
+      "gold_sql": "SELECT `Free Meal Count (K-12)` / `Enrollment (K-12)` FROM frpm WHERE `County Name` = 'Alameda' ORDER BY (CAST(`Free Meal Count (K-12)` AS REAL) / `Enrollment (K-12)`) DESC LIMIT 1",
+      "predicted_sql": "SELECT MAX(`Free Meal Count (K-12)` / `Enrollment (K-12)`) FROM frpm WHERE `County Name` = 'Alameda'",
+      "correct": true,
+      "error": null,
+      "timeout": false,
+      "execution_time": 0.01593017578125,
+      "mode": "experience"
+    },
+    {
+      "question_id": 1,
+      "question": "Please list the lowest three eligible free rates for students aged 5-17 in continuation schools.",
+      "db_id": "california_schools",
+      "difficulty": "moderate",
+      "gold_sql": "SELECT `Free Meal Count (Ages 5-17)` / `Enrollment (Ages 5-17)` FROM frpm WHERE `Educational Option Type` = 'Continuation School' AND `Free Meal Count (Ages 5-17)` / `Enrollment (Ages 5-17)` IS NOT NULL ORDER BY `Free Meal Count (Ages 5-17)` / `Enrollment (Ages 5-17)` ASC LIMIT 3",
+      "predicted_sql": "SELECT MIN(`Free Meal Count (K-12)` / `Enrollment (K-12)`) FROM frpm WHERE `Educational Option Type` = 'Continuation School'",
+      "correct": false,
+      "error": null,
+      "timeout": false,
+      "execution_time": 0.0025658607482910156,
+      "mode": "experience"
+    },
+    {
+      "question_id": 2,
+      "question": "Please list the zip code of all the charter schools in Fresno County Office of Education.",
+      "db_id": "california_schools",
+      "difficulty": "simple",
+      "gold_sql": "SELECT T2.Zip FROM frpm AS T1 INNER JOIN schools AS T2 ON T1.CDSCode = T2.CDSCode WHERE T1.`District Name` = 'Fresno County Office of Education' AND T1.`Charter School (Y/N)` = 1",
+      "predicted_sql": "SELECT T2.Zip FROM frpm AS T1 INNER JOIN schools AS T2 ON T1.CDSCode = T2.CDSCode WHERE T1.`District Name` = 'Fresno County Office of Education' AND T1.`Charter School (Y/N)` = 1",
+      "correct": true,
+      "error": null,
+      "timeout": false,
+      "execution_time": 0.00350189208984375,
+      "mode": "experience"
+    },
+    {
+      "question_id": 3,
+      "question": "What is the unabbreviated mailing street address of the school with the highest FRPM count for K-12 students?",
+      "db_id": "california_schools",
+      "difficulty": "simple",
+      "gold_sql": "SELECT T2.MailStreet FROM frpm AS T1 INNER JOIN schools AS T2 ON T1.CDSCode = T2.CDSCode ORDER BY T1.`FRPM Count (K-12)` DESC LIMIT 1",
+      "predicted_sql": "SELECT * FROM frpm LIMIT 10",
+      "correct": false,
+      "error": null,
+      "timeout": false,
+      "execution_time": 0.010837078094482422,
+      "mode": "experience"
+    },
+    {
+      "question_id": 4,
+      "question": "Please list the phone numbers of the direct charter-funded schools that are opened after 2000/1/1.",
+      "db_id": "california_schools",
+      "difficulty": "moderate",
+      "gold_sql": "SELECT T2.Phone FROM frpm AS T1 INNER JOIN schools AS T2 ON T1.CDSCode = T2.CDSCode WHERE T1.`Charter Funding Type` = 'Directly funded' AND T1.`Charter School (Y/N)` = 1 AND T2.OpenDate > '2000-01-01'",
+      "predicted_sql": "SELECT * FROM frpm LIMIT 10",
+      "correct": false,
+      "error": null,
+      "timeout": false,
+      "execution_time": 0.012740135192871094,
+      "mode": "experience"
+    },
+    {
+      "question_id": 5,
+      "question": "How many schools with an average score in Math greater than 400 in the SAT test are exclusively virtual?",
+      "db_id": "california_schools",
+      "difficulty": "simple",
+      "gold_sql": "SELECT COUNT(DISTINCT T2.School) FROM satscores AS T1 INNER JOIN schools AS T2 ON T1.cds = T2.CDSCode WHERE T2.Virtual = 'F' AND T1.AvgScrMath > 400",
+      "predicted_sql": "SELECT * FROM frpm LIMIT 10",
+      "correct": false,
+      "error": null,
+      "timeout": false,
+      "execution_time": 0.011877059936523438,
+      "mode": "experience"
+    },
+    {
+      "question_id": 6,
+      "question": "Among the schools with the SAT test takers of over 500, please list the schools that are magnet schools or offer a magnet program.",
+      "db_id": "california_schools",
+      "difficulty": "simple",
+      "gold_sql": "SELECT T2.School FROM satscores AS T1 INNER JOIN schools AS T2 ON T1.cds = T2.CDSCode WHERE T2.Magnet = 1 AND T1.NumTstTakr > 500",
+      "predicted_sql": "SELECT * FROM frpm LIMIT 10",
+      "correct": false,
+      "error": null,
+      "timeout": false,
+      "execution_time": 0.0029571056365966797,
+      "mode": "experience"
+    },
+    {
+      "question_id": 7,
+      "question": "What is the phone number of the school that has the highest number of test takers with an SAT score of over 1500?",
+      "db_id": "california_schools",
+      "difficulty": "simple",
+      "gold_sql": "SELECT T2.Phone FROM satscores AS T1 INNER JOIN schools AS T2 ON T1.cds = T2.CDSCode ORDER BY T1.NumGE1500 DESC LIMIT 1",
+      "predicted_sql": "SELECT * FROM frpm LIMIT 10",
+      "correct": false,
+      "error": null,
+      "timeout": false,
+      "execution_time": 0.0016901493072509766,
+      "mode": "experience"
+    },
+    {
+      "question_id": 8,
+      "question": "What is the number of SAT test takers of the schools with the highest FRPM count for K-12 students?",
+      "db_id": "california_schools",
+      "difficulty": "simple",
+      "gold_sql": "SELECT NumTstTakr FROM satscores WHERE cds = ( SELECT CDSCode FROM frpm ORDER BY `FRPM Count (K-12)` DESC LIMIT 1 )",
+      "predicted_sql": "SELECT * FROM frpm LIMIT 10",
+      "correct": false,
+      "error": null,
+      "timeout": false,
+      "execution_time": 0.0021750926971435547,
+      "mode": "experience"
+    },
+    {
+      "question_id": 9,
+      "question": "Among the schools with the average score in Math over 560 in the SAT test, how many schools are directly charter-funded?",
+      "db_id": "california_schools",
+      "difficulty": "simple",
+      "gold_sql": "SELECT COUNT(T2.`School Code`) FROM satscores AS T1 INNER JOIN frpm AS T2 ON T1.cds = T2.CDSCode WHERE T1.AvgScrMath > 560 AND T2.`Charter Funding Type` = 'Directly funded'",
+      "predicted_sql": "SELECT * FROM frpm LIMIT 10",
+      "correct": false,
+      "error": null,
+      "timeout": false,
+      "execution_time": 0.001542806625366211,
+      "mode": "experience"
+    }
+  ]
+}
