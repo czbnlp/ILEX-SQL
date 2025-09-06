@@ -1,0 +1,44 @@
+# ILEX-SQL Configuration File
+# 双模式智能SQL生成系统配置
+
+ilex:
+  # 模式选择配置
+  mode_selection:
+    complexity_threshold: 0.7      # 复杂度阈值，超过此值启用探索模式
+    enable_exploration: true       # 是否启用探索模式
+    enable_complexity_analysis: true  # 是否启用复杂度分析
+    
+  # 探索模式配置
+  exploration:
+    max_exploration_steps: 5       # 最大探索步数
+    timeout_per_step: 30          # 每步超时时间（秒）
+    max_retries_per_subquestion: 3 # 每个子问题最大重试次数
+    enable_intermediate_validation: true  # 是否启用中间结果验证
+    execution_memory_size: 10     # 执行记忆大小
+    
+  # 经验升级配置
+  experience_upgrade:
+    auto_extract_success_patterns: true  # 自动提取成功模式
+    min_confidence_threshold: 0.8       # 最小置信度阈值
+    max_exploration_history_size: 1000  # 最大探索历史大小
+    enable_experience_learning: true     # 是否启用经验学习
+    
+  # 记忆管理配置
+  memory:
+    context_window_size: 5         # 上下文窗口大小
+    retain_successful_paths: true  # 保留成功路径
+    retain_failed_paths: false     # 保留失败路径
+    
+  # 调试和监控配置
+  debug:
+    enable_logging: true          # 是否启用日志
+    log_level: "INFO"             # 日志级别
+    save_exploration_history: true # 是否保存探索历史
+    save_execution_traces: true    # 是否保存执行轨迹
+    
+  # 性能优化配置
+  performance:
+    enable_caching: true          # 是否启用缓存
+    cache_size: 1000             # 缓存大小
+    enable_parallel_processing: false  # 是否启用并行处理
+    max_workers: 4               # 最大工作线程数

@@ -1,0 +1,46 @@
+[
+    {
+        "question": "List out student names that enrolled in two schools and two organizations?",
+        "hint": "enrolled in two schools refers to COUNT(school) = 2; two organizations refers to COUNT(organ) = 2;",
+        "error_sql": "SELECT T1.name FROM (SELECT name, COUNT(school) FROM enrolled GROUP BY name HAVING COUNT(school) = 2) T1 INNER JOIN (SELECT name, COUNT(organ) FROM enlist GROUP BY name HAVING COUNT(organ) = 2) T2 ON T1.name = T2.name",
+        "compiler_hint": null,
+        "reflective_cot": "### Tip:\nWhen joining two tables, ensure that the join condition is correct and that the columns being joined are the correct ones. In this case, the error was due to the fact that the join was done on the count of schools and organizations, rather than the actual names of the schools and organizations. Additionally, the subqueries were not necessary, and a simple inner join with a group by and having clause would have sufficed. To avoid this mistake in the future, take the time to carefully review the join conditions and ensure that they are correct, and consider whether subqueries are truly necessary or if a simpler approach can be used.",
+        "ground_truth_sql": "SELECT T.name FROM ( SELECT T1.name, COUNT(T1.organ) AS num FROM enlist AS T1 INNER JOIN enrolled AS T2 ON T1.name = T2.name GROUP BY T1.name ) T WHERE T.num = 2",
+        "difficulty": ""
+    },
+    {
+        "question": "How many distinct movies in English stars a male actor who acts the best?",
+        "hint": "Male actors mean that a_gender = 'M'; isEnglish = 'T' means movies in English",
+        "error_sql": "SELECT COUNT(DISTINCT T1.movieid) FROM movies2actors AS T1 INNER JOIN actors AS T2 ON T1.actorid = T2.actorid INNER JOIN movies AS T3 ON T1.movieid = T3.movieid WHERE T2.a_gender = 'M' AND T3.isEnglish = 'T' AND T2.a_quality = ( SELECT MAX(a_quality) FROM actors )",
+        "compiler_hint": null,
+        "reflective_cot": "### Tip:\nWhen joining multiple tables and selecting distinct values, ensure that the column you are selecting is from the correct table and is the one you intend to count. In this case, the error was in selecting `T1.movieid` and `T3.movieid` instead of `T1.actorid` which is the correct column to count distinct male actors who act the best in English movies. Also, note that the subquery `( SELECT MAX(a_quality) FROM actors )` should be replaced with the actual maximum value `5` to get the correct result.",
+        "ground_truth_sql": "SELECT COUNT(DISTINCT T1.actorid) FROM actors AS T1 INNER JOIN movies2actors AS T2 ON T1.actorid = T2.actorid INNER JOIN movies AS T3 ON T2.movieid = T3.movieid WHERE T3.isEnglish = 'T' AND T1.a_gender = 'M' AND T1.a_quality = 5",
+        "difficulty": ""
+    },
+    {
+        "question": "What percentage of authors of the paper about Charged particle multiplicity are affiliated with INFN?",
+        "hint": "about Charged particle multiplicity refers to Title which contains 'Charged particle multiplicity'; affiliated with INFN refers to Affiliation LIKE '%INFN%' ; percentage refers to DIVIDE(COUNT(Affiliation LIKE '%INFN%' ), COUNT(AuthorId)) * 100%",
+        "error_sql": "SELECT CAST(SUM(CASE WHEN Affiliation LIKE '%INFN%' THEN 1 ELSE 0 END) AS REAL) * 100 / COUNT(Affiliation) FROM Author WHERE Id IN ( SELECT AuthorId FROM PaperAuthor WHERE PaperId IN ( SELECT Id FROM Paper WHERE Title LIKE '%Charged particle multiplicity%' ))",
+        "compiler_hint": null,
+        "reflective_cot": "### Tip:\nWhen joining tables, ensure that the join is performed on the correct tables and that the columns used for joining are the correct ones. In this case, the error was due to joining the `Author` table directly, whereas the correct approach was to join the `PaperAuthor` table with the `Paper` table, and then use the `PaperAuthor` table to count the affiliations. Additionally, when counting the total number of authors, make sure to count the `Id` column from the correct table, which in this case is the `PaperAuthor` table.",
+        "ground_truth_sql": "SELECT CAST((SUM(CASE WHEN T1.Affiliation LIKE '%INFN%' THEN 1 ELSE 0 END)) AS REAL) * 100 / COUNT(T2.Id) FROM PaperAuthor AS T1 INNER JOIN Paper AS T2 ON T1.PaperId = T2.Id WHERE T2.Title LIKE '%Charged particle multiplicity%'",
+        "difficulty": ""
+    },
+    {
+        "question": "How many cities have businesses with active life category? Find the percentage of the city where the review count that is low in total review count.",
+        "hint": "category refers to category_name; percentage = MULTIPLY(DIVIDE(SUM(category_name = 'Active Life'), SUM(review_count = 'LOW')), 1.0);",
+        "error_sql": "SELECT CAST(SUM(IIF(T2.category_name = 'Active Life' AND T3.review_count = 'Low', 1, 0)) AS REAL) * 100 / COUNT(T3.review_count) \nFROM Business_Categories AS T1 \nINNER JOIN Categories AS T2 \nON T1.category_id = T2.category_id\nINNER JOIN Business AS T3 \nON T1.business_id = T3.business_id",
+        "compiler_hint": "no such column: T1.category_name",
+        "reflective_cot": "### Tip:\nWhen joining multiple tables, ensure that you are referencing the correct table and column names. In the initial error, the column 'category_name' was referenced from the wrong table 'T1' which is actually 'Business_Categories'. It should be referenced from 'T2' which is 'Categories'. Additionally, the subquery in the Ground Truth SQL is used to calculate the total count of 'Low' review counts, which is not present in the initial error or the SQL after reflection. To avoid making the same mistake in the future, carefully review the table and column names, and ensure that the logic of the query is correct.",
+        "ground_truth_sql": "SELECT SUM(CASE WHEN T2.category_name LIKE 'Active Life' THEN 1 ELSE 0 END) AS \"num\" , CAST(SUM(CASE WHEN T3.city LIKE 'Phoenix' THEN 1 ELSE 0 END) AS REAL) * 100 / ( SELECT COUNT(T3.review_count) FROM Business_Categories AS T1 INNER JOIN Categories AS T2 ON T1.category_id = T2.category_id INNER JOIN Business AS T3 ON T1.business_id = T3.business_id WHERE T3.review_count LIKE 'Low' ) FROM Business_Categories AS T1 INNER JOIN Categories AS T2 ON T1.category_id = T2.category_id INNER JOIN Business AS T3 ON T1.business_id = T3.business_id",
+        "difficulty": ""
+    },
+    {
+        "question": "Which two countries share the second highest mountain? Give the country code.",
+        "hint": "",
+        "error_sql": "SELECT T1.Code, T2.Code FROM country AS T1 INNER JOIN geo_mountain AS T2 ON T1.Code = T2.Country INNER JOIN mountain AS T3 ON T2.Mountain = T3.Name ORDER BY T3.Height DESC LIMIT 1 OFFSET 1",
+        "compiler_hint": "no such column: T2.Code",
+        "reflective_cot": "### Tip: \nWhen joining tables, ensure that the join condition is correct and that the correct column is being referenced. In the Error SQL Query, the join condition was incorrect, and in the SQL after Reflection, the query was still incorrect because it was trying to return two country codes, but the question was asking for the country codes of the two countries that share the second highest mountain, which requires a different approach. The correct approach is to first find the name of the second highest mountain and then find the country codes of the countries that have this mountain.",
+        "ground_truth_sql": "SELECT T1.Code FROM country AS T1 INNER JOIN geo_mountain AS T2 ON T1.Code = T2.Country WHERE T2.Mountain = ( SELECT Name FROM mountain ORDER BY Height DESC LIMIT 1, 1 )",
+        "difficulty": ""
+  

@@ -1,0 +1,28 @@
+分析以下自然语言问题的复杂度，并给出0-1之间的复杂度分数。
+
+问题: {question}
+
+数据库Schema: {db_schema}
+
+请从以下维度评估：
+1. 是否需要多步操作 (requires_multi_step)
+2. 是否需要聚合函数 (has_aggregation) 
+3. 是否需要多表连接 (needs_joins)
+4. 是否需要子查询 (has_subqueries)
+5. 问题长度和结构复杂度
+
+请以JSON格式返回评估结果：
+{{
+  "complexity_score": 0.8,
+  "indicators": {{
+    "requires_multi_step": true,
+    "has_aggregation": true,
+    "needs_joins": true,
+    "has_subqueries": false,
+    "question_length": 25,
+    "has_comparative": false,
+    "has_temporal": false,
+    "has_conditional": false
+  }},
+  "reasoning": "这个问题需要先找到最高薪水的经理，然后找到其部门，最后找到该部门员工，需要多步操作和表连接。"
+}}
