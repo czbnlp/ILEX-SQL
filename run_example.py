@@ -226,6 +226,78 @@ def interactive_mode():
         except Exception as e:
             print(f"处理问题时发生错误: {e}")
 
+def evaluate_bird_dataset():
+    """评估BIRD数据集"""
+    print("=== BIRD数据集评估 ===")
+    
+    try:
+        from bird_evaluator_working import BIRDEvaluator
+        
+        # 创建评估器
+        evaluator = BIRDEvaluator(
+            data_dir="LPE-SQL/data",
+            db_root="/Users/chuzhibo/Desktop/workspace_sql/data/dev_databases",
+            use_local_model=True,
+            timeout=30
+        )
+        
+        print("✓ 评估器初始化成功")
+        print("开始评估BIRD数据集...")
+        print("注意: 这需要vLLM服务正在运行")
+        
+        # 执行评估
+        stats = evaluator.evaluate_dataset(
+            split="dev",
+            max_questions=None,  # 评估所有问题
+            output_file="bird_evaluation_results.json"
+        )
+        
+        print(f"\n✓ BIRD数据集评估完成！")
+        print(f"结果已保存到: bird_evaluation_results.json")
+        
+    except Exception as e:
+        print(f"❌ 评估过程中发生错误: {e}")
+        print("如果vLLM服务未启动，可以尝试使用模拟版本:")
+        print("  python bird_evaluator_mock.py --max-questions 5")
+        import traceback
+        traceback.print_exc()
+
+
+def evaluate_bird_dataset_mock():
+    """模拟评估BIRD数据集（无需vLLM服务）"""
+    print("=== BIRD数据集模拟评估 ===")
+    
+    try:
+        from bird_evaluator_mock import BIRDEvaluator
+        
+        # 创建评估器
+        evaluator = BIRDEvaluator(
+            data_dir="LPE-SQL/data",
+            db_root="/Users/chuzhibo/Desktop/workspace_sql/data/dev_databases",
+            timeout=30
+        )
+        
+        print("✓ 模拟评估器初始化成功")
+        print("开始模拟评估BIRD数据集...")
+        print("注意: 这是模拟版本，使用模拟的LLM响应")
+        
+        # 执行评估
+        stats = evaluator.evaluate_dataset(
+            split="dev",
+            max_questions=10,  # 限制为10个问题用于快速测试
+            output_file="bird_evaluation_results_mock.json"
+        )
+        
+        print(f"\n✓ BIRD数据集模拟评估完成！")
+        print(f"结果已保存到: bird_evaluation_results_mock.json")
+        print("您可以查看结果文件了解评估格式")
+        
+    except Exception as e:
+        print(f"❌ 模拟评估过程中发生错误: {e}")
+        import traceback
+        traceback.print_exc()
+
+
 if __name__ == "__main__":
     # 检查命令行参数
     if len(sys.argv) > 1:
@@ -233,10 +305,16 @@ if __name__ == "__main__":
             test_individual_components()
         elif sys.argv[1] == "--interactive":
             interactive_mode()
+        elif sys.argv[1] == "--bird":
+            evaluate_bird_dataset()
+        elif sys.argv[1] == "--bird-mock":
+            evaluate_bird_dataset_mock()
         else:
             print("使用方法:")
             print("  python run_example.py              # 运行示例")
             print("  python run_example.py --test       # 测试组件")
             print("  python run_example.py --interactive # 交互模式")
+            print("  python run_example.py --bird       # 评估BIRD数据集")
+            print("  python run_example.py --bird-mock  # 模拟评估BIRD数据集")
     else:
         main()

@@ -171,6 +171,29 @@ python run_example.py --interactive
 python run_example.py --test
 ```
 
+### 4.4 评估BIRD数据集
+
+```bash
+# 评估BIRD数据集（需要LPE-SQL/data目录包含BIRD数据集文件）
+python run_example.py --bird
+```
+
+或者使用独立的评估脚本：
+
+```bash
+# 快速测试BIRD评估（前5个问题）
+python test_bird_eval.py
+
+# 完整BIRD数据集评估
+python bird_evaluator.py --split dev --output bird_results.json
+
+# 限制评估问题数量
+python bird_evaluator.py --split dev --max-questions 100 --output bird_results.json
+
+# 使用OpenAI API进行评估
+python bird_evaluator.py --split dev --use-openai --output bird_results_openai.json
+```
+
 ### 4.4 直接测试连接器
 
 ```bash
