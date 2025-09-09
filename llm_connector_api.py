@@ -10,6 +10,7 @@ import requests
 import json
 import time
 import logging
+from dotenv import load_dotenv
 from typing import Optional, Dict, Any, List
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
@@ -24,23 +25,22 @@ class APILLMConnector:
     
     def __init__(self):
         """
-        初始化API连接器 (使用硬编码配置)
+        初始化API连接器 (从.env文件加载配置)
         """
         # 初始化logger
         self.logger = logging.getLogger(__name__)
         
-        # ==================== 硬编码配置 START ====================
-        # 直接在这里设置您的API信息
-        self.api_url = "https://qianfan.baidubce.com/v2/chat/completions"
-        self.model_name = "ernie-4.5-turbo-128k"
-        self.api_key = "bce-v3/ALTAK-QoplnaBHAcEhU4Wy5qmjx/bbce25a048b589b1fef687f9fd49b8e491f4a882"
+        # 从.env加载配置
+        load_dotenv()
+        self.api_url = os.getenv("API_URL", "https://qianfan.baidubce.com/v2/chat/completions")
+        self.model_name = os.getenv("API_MODEL", "ernie-4.5-turbo-128k")
+        self.api_key = os.getenv("API_KEY", "")
         
-        # 其他参数也使用固定的默认值
-        self.timeout = 120
-        self.max_retries = 3
-        self.temperature = 0.1
-        self.max_tokens = 500
-        # ===================== 硬编码配置 END =====================
+        # 其他参数
+        self.timeout = int(os.getenv("API_TIMEOUT", "120"))
+        self.max_retries = int(os.getenv("API_MAX_RETRIES", "3"))
+        self.temperature = float(os.getenv("API_TEMPERATURE", "0.1"))
+        self.max_tokens = int(os.getenv("API_MAX_TOKENS", "500"))
         
         # 统计信息
         self.stats = {

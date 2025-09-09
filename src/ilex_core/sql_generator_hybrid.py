@@ -28,7 +28,8 @@ class HybridSQLGenerator:
     def __init__(self, 
                  config_path: str = "config/ilex_config.yaml",
                  llm_connector=None,
-                 sql_executor=None):
+                 sql_executor=None,
+                 validate_execution: bool = False):
         """
         初始化混合SQL生成器
         
@@ -105,7 +106,8 @@ class HybridSQLGenerator:
     def generate_sql(self, 
                     question: str, 
                     db_path: str,
-                    db_schema: Dict[str, Any] = None) -> Tuple[str, bool, Dict[str, Any]]:
+                    db_schema: Dict[str, Any] = None,
+                    gold_sql: str = None) -> Tuple[str, bool, Dict[str, Any]]:
         """
         生成SQL查询（混合模式）
         
@@ -113,9 +115,10 @@ class HybridSQLGenerator:
             question: 自然语言问题
             db_path: 数据库路径
             db_schema: 数据库schema信息
+            gold_sql: 标准SQL（用于结果验证）
             
         Returns:
-            (最终SQL, 是否成功, 详细信息)
+            (最终SQL, 是否成功[基于执行结果], 详细信息)
         """
         self.stats['total_questions'] += 1
         start_time = time.time()
@@ -173,7 +176,8 @@ class HybridSQLGenerator:
     def _try_experience_mode(self, 
                             question: str, 
                             db_path: str,
-                            db_schema: Dict[str, Any] = None) -> Tuple[str, bool, Dict[str, Any]]:
+                            db_schema: Dict[str, Any] = None,
+                            gold_sql: str = None) -> Tuple[str, bool, Dict[str, Any]]:
         """
         尝试使用经验模式生成SQL (LPE-SQL风格实现)
         
@@ -181,9 +185,10 @@ class HybridSQLGenerator:
             question: 自然语言问题
             db_path: 数据库路径
             db_schema: 数据库schema信息 (可选，新实现中不需要)
+            gold_sql: 标准SQL（用于结果验证）
             
         Returns:
-            (SQL, 是否成功, 详细信息)
+            (SQL, 是否成功[基于执行结果], 详细信息)
         """
         try:
             # 使用新的LPE-SQL风格生成器
@@ -200,10 +205,16 @@ class HybridSQLGenerator:
                 validation = self.sql_postprocessor.validate_sql_syntax(sql, db_path)
                 
                 if validation['is_valid']:
-                    return sql, True, {
+                    # 执行SQL验证结果一致性
+                    exec_result, exec_error = self.sql_executor(sql, db_path)
+                    gold_result, _ = self.sql_executor(gold_sql, db_path)  # 需要从调用链获取gold_sql
+                    is_correct = (exec_result == gold_result) if not exec_error else False
+                    
+                    return sql, is_correct, {
                         'raw_sql': sql,
                         'processed_sql': sql,
                         'validation': validation,
+                        'execution_correct': is_correct,
                         'retries_used': 0,
                         'experience_mode': 'lpe_sql_style',
                         'retrieval_stats': self.enhanced_sql_generator.get_retrieval_stats()
@@ -233,7 +244,8 @@ class HybridSQLGenerator:
     def _try_exploration_mode(self, 
                              question: str, 
                              db_path: str,
-                             db_schema: Dict[str, Any] = None) -> Tuple[str, bool, Dict[str, Any]]:
+                             db_schema: Dict[str, Any] = None,
+                             gold_sql: str = None) -> Tuple[str, bool, Dict[str, Any]]:
         """
         尝试使用探索模式生成SQL
         
@@ -241,9 +253,10 @@ class HybridSQLGenerator:
             question: 自然语言问题
             db_path: 数据库路径
             db_schema: 数据库schema信息
+            gold_sql: 标准SQL（用于结果验证）
             
         Returns:
-            (SQL, 是否成功, 详细信息)
+            (SQL, 是否成功[基于执行结果], 详细信息)
         """
         try:
             # 如果没有提供schema，获取schema信息
