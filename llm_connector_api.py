@@ -32,7 +32,7 @@ class APILLMConnector:
         # ==================== 硬编码配置 START ====================
         # 直接在这里设置您的API信息
         self.api_url = "https://qianfan.baidubce.com/v2/chat/completions"
-        self.model_name = "deepseek-v3"
+        self.model_name = "ernie-4.5-turbo-128k"
         self.api_key = "bce-v3/ALTAK-QoplnaBHAcEhU4Wy5qmjx/bbce25a048b589b1fef687f9fd49b8e491f4a882"
         
         # 其他参数也使用固定的默认值
@@ -105,12 +105,22 @@ class APILLMConnector:
         for attempt in range(max_retries):
             try:
                 start_time = time.time()
+
+                # ==================== 代码修改处 START ====================
+                # 定义一个空的代理字典，以忽略系统/终端中设置的任何HTTP/HTTPS代理
+                no_proxies = {
+                    "http": None,
+                    "https": None,
+                }
+
                 response = requests.post(
                     self.api_url,
                     headers=headers,
                     json=payload,
-                    timeout=self.timeout
+                    timeout=self.timeout,
+                    proxies=no_proxies  # <-- 添加此参数以禁用代理
                 )
+                # ===================== 代码修改处 END =====================
                 
                 if response.status_code != 200:
                     error_msg = f"HTTP {response.status_code}: {response.reason}"

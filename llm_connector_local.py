@@ -99,35 +99,41 @@ class LocalLLMConnector:
 
     def __call__(self, prompt: str, **kwargs) -> str:
         """
-        调用本地LLM API（统一使用test.py中的call_model_api方式）
+        调用本地LLM API（使用真正的vLLM服务）
         
         Args:
             prompt: 输入提示词
+            **kwargs: 其他参数，如temperature, max_tokens等
             
         Returns:
             LLM生成的响应文本
         """
-        # 导入test.py中的call_model_api函数
-        import sys
-        import os
-        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        
         try:
-            from test import call_model_api
+            client = self._get_available_client()
+            if not client:
+                return "错误：没有可用的本地LLM服务"
             
-            # 使用test.py中的模型调用方式
-            result = call_model_api(prompt)
+            # 构建消息
+            messages = [{"role": "user", "content": prompt}]
             
-            if result["success"]:
-                # 如果成功提取到JSON数据，返回JSON，否则返回原始回答
-                think_content, json_data = self.extract_content_and_json(result["response"])
-                if json_data:
-                    return json_data
-                else:
-                    return result["response"]
+            # 获取参数
+            temperature = kwargs.get('temperature', 0.1)
+            max_tokens = kwargs.get('max_tokens', 1000)
+            
+            # 调用本地vLLM API
+            response = client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            
+            # 提取响应内容
+            if response.choices and response.choices[0].message:
+                return response.choices[0].message.content
             else:
-                return f"API调用失败: {result['error']}"
-            
+                return "错误：无法从响应中提取内容"
+                
         except Exception as e:
             print(f"本地LLM API调用失败: {e}")
             return f"API调用失败: {str(e)}"

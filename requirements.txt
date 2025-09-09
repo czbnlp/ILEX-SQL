@@ -18,3 +18,10 @@ anthropic>=0.3.0
 # 数据库连接器
 # psycopg2-binary>=2.9.0  # PostgreSQL
 # pymysql>=1.0.2        # MySQL
+
+# LPE-SQL 经验检索依赖
+sentence-transformers>=2.2.0  # 用于文本嵌入和相似度检索
+faiss-cpu>=1.7.0              # 用于高效向量相似度搜索
+
+# 其他工具
+func-timeout>=4.3.5           # 用于函数超时控制

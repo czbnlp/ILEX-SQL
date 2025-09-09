@@ -1,0 +1,45 @@
+[
+  {
+    "question": "List the id of the player who won the Orange Cap for 2 consecutive seasons.",
+    "hint": "id of the player who won the Orange Cap refers to Orange_Cap; for 2 consecutive seasons refers to count(Season_Year) > 1",
+    "sql": "SELECT Orange_Cap FROM Season GROUP BY Orange_Cap HAVING COUNT(Season_Year) > 1",
+    "thought process": "To generate the SQL query, I followed these key reasoning steps:\n\n1. **Identify the relevant table and column**: The question asks for the id of the player who won the Orange Cap, which is stored in the `Season` table under the `Orange_Cap` column.\n\n2. **Determine the condition for consecutive seasons**: The question specifies that the player should have won the Orange Cap for 2 consecutive seasons. This implies that we need to count the number of seasons for each player and filter those with a count greater than 1.\n\n3. **Choose the appropriate SQL clause**: To count the number of seasons for each player, we can use the `GROUP BY` clause, which groups rows by one or more columns. In this case, we group by the `Orange_Cap` column.\n\n4. **Apply the filter condition**: To filter the groups with a count greater than 1, we use the `HAVING` clause, which allows us to specify conditions on the grouped data.\n\n5. **Construct the SQL query**: Combining the above steps, we construct the SQL query as follows:\n   ```sql\nSELECT Orange_Cap \nFROM Season \nGROUP BY Orange_Cap \nHAVING COUNT(Season_Year) > 1\n```\nThis query groups the rows in the `Season` table by the `Orange_Cap` column, counts the number of seasons for each group, and returns the `Orange_Cap` values for groups with a count greater than 1.",
+    "difficulty": ""
+  },
+  {
+    "question": "How many production companies does the movie \"Four Rooms\" have?",
+    "hint": "movie \"Four Rooms\" refers to title = 'Four Rooms'",
+    "sql": "SELECT COUNT(company_id) FROM movie_company WHERE movie_id IN (SELECT movie_id FROM movie WHERE title = 'Four Rooms')",
+    "thought process": "To answer the question, we need to find the number of production companies associated with the movie \"Four Rooms\". Here's the thought process behind generating the SQL query:\n\n1. **Identify the relevant tables**: We need to access the `movie` table to find the movie ID of \"Four Rooms\" and the `movie_company` table to find the production companies associated with that movie ID.\n\n2. **Find the movie ID of \"Four Rooms\"**: We can use a subquery to select the `movie_id` from the `movie` table where the `title` is 'Four Rooms'.\n\n3. **Find the production companies associated with the movie ID**: We can use the `movie_id` from the subquery to select the `company_id` from the `movie_company` table.\n\n4. **Count the number of production companies**: We can use the `COUNT` function to count the number of `company_id` values returned in the previous step.\n\nThe resulting SQL query is:\n```sql\nSELECT COUNT(company_id) \nFROM movie_company \nWHERE movie_id IN (SELECT movie_id FROM movie WHERE title = 'Four Rooms')\n```\nThis query first finds the `movie_id` of \"Four Rooms\" and then uses that ID to count the number of production companies associated with that movie.",
+    "difficulty": ""
+  },
+  {
+    "question": "Among all the users with the average ratings of at least 4 and above of all reviews, calculate the percent that have no fans or followers.",
+    "hint": "average ratings of at least 4 refers to user_average_stars > = 4; no fans or followers refers to user_fans = 'None'; percentage = divide(count(user_id where user_average_stars > = 4 and user_fans = 'None'), sum(user_id where user_average_stars > = 4))*100%",
+    "sql": "SELECT CAST(SUM(IIF(user_average_stars >= 4 AND user_fans = 'None', 1, 0)) AS REAL) * 100 / COUNT(user_id) FROM Users WHERE user_average_stars >= 4",
+    "thought process": "To solve this problem, I followed these key reasoning steps:\n\n1. **Identify the conditions**: The problem requires users with an average rating of at least 4 and no fans or followers. This translates to `user_average_stars >= 4` and `user_fans = 'None'`.\n\n2. **Determine the calculation**: We need to calculate the percentage of users who meet these conditions. This involves counting the number of users who meet both conditions and dividing it by the total number of users with an average rating of at least 4.\n\n3. **Choose the SQL functions**: To count the number of users who meet both conditions, we can use a conditional expression (`IIF`) that returns 1 if the conditions are met and 0 otherwise. We then sum these values to get the total count.\n\n4. **Calculate the percentage**: To calculate the percentage, we divide the count of users who meet both conditions by the total count of users with an average rating of at least 4, and multiply by 100.\n\n5. **Write the SQL query**: The final query uses a `SELECT` statement with a `WHERE` clause to filter users with an average rating of at least 4. The `IIF` function is used to count users who meet both conditions, and the result is divided by the total count of users with an average rating of at least 4.\n\nHere's the SQL query again:\n```sql\nSELECT CAST(SUM(IIF(user_average_stars >= 4 AND user_fans = 'None', 1, 0)) AS REAL) * 100 / COUNT(user_id) \nFROM Users \nWHERE user_average_stars >= 4\n```\nNote that I used `CAST` to convert the result to a real number, as the division of two integers would result in an integer.",
+    "difficulty": ""
+  },
+  {
+    "question": "List the name of the author that affiliated with University of Illinois Chicago?",
+    "hint": "'University of Illinois Chicago' is an affiliation",
+    "sql": "SELECT Name FROM Author WHERE Affiliation = 'University of Illinois Chicago'",
+    "thought process": "To generate the SQL query, I followed these steps:\n\n1. **Identify the table**: The question asks for the name of an author, so I identified the `Author` table as the relevant table to query.\n\n2. **Determine the condition**: The question specifies that the author should be affiliated with 'University of Illinois Chicago'. This translates to a `WHERE` clause condition on the `Affiliation` column.\n\n3. **Specify the column to retrieve**: The question asks for the name of the author, so I specified the `Name` column in the `SELECT` clause.\n\n4. **Construct the query**: Combining the above steps, I constructed the SQL query as `SELECT Name FROM Author WHERE Affiliation = 'University of Illinois Chicago'`.\n\nThis query directly retrieves the desired information from the `Author` table based on the specified affiliation condition.",
+    "difficulty": ""
+  },
+  {
+    "question": "What type of food is there in the restaurants on Adeline Street in Berkeley city?",
+    "hint": "Adeline Street refers to street_name = 'adeline st'; type of food refers to food_type\n\n",
+    "sql": "SELECT T1.food_type FROM generalinfo AS T1 INNER JOIN location AS T2 ON T1.id_restaurant = T2.id_restaurant WHERE T2.street_name = 'adeline st' AND T1.city = 'berkeley'",
+    "thought process": "To generate the SQL query, I followed these key reasoning steps:\n\n1. **Identify the required information**: The question asks for the type of food in restaurants on Adeline Street in Berkeley city. This means we need to retrieve the `food_type` column from the database.\n\n2. **Determine the relevant tables**: The `food_type` column is located in the `generalinfo` table. However, this table does not contain information about the street name. Therefore, we also need to join the `location` table, which contains the `street_name` column.\n\n3. **Establish the join condition**: The `generalinfo` and `location` tables are linked by the `id_restaurant` column. We can use this column to join the two tables.\n\n4. **Specify the filter conditions**: We need to filter the results to only include restaurants on Adeline Street in Berkeley city. This can be achieved by adding two conditions to the `WHERE` clause: `T2.street_name = 'adeline st'` and `T1.city = 'berkeley'`.\n\n5. **Construct the SQL query**: By combining the above steps, we can construct the SQL query:\n   ```sql\nSELECT T1.food_type \nFROM generalinfo AS T1 \nINNER JOIN location AS T2 \nON T1.id_restaurant = T2.id_restaurant \nWHERE T2.street_name = 'adeline st' AND T1.city = 'berkeley'\n```\nThis query joins the `generalinfo` and `location` tables based on the `id_restaurant` column, filters the results to only include restaurants on Adeline Street in Berkeley city, and retrieves the `food_type` column.",
+    "difficulty": ""
+  },
+  {
+    "question": "What is the highest salary in the company?",
+    "sql": "SELECT MAX(salary) FROM employees",
+    "hint": "Use MAX function to find highest salary",
+    "thought process": "Identify the salary column and use MAX aggregation",
+    "difficulty": "",
+    "knowledge": ""
+  }
+]

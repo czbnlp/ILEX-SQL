@@ -9,16 +9,18 @@ import yaml
 import logging
 from typing import Dict, List, Any, Optional, Tuple
 from .execution_memory import ExecutionMemory
-from .problem_decomposer_fixed import ProblemDecomposer, SubProblem
+from .problem_decomposer import ProblemDecomposer, SubProblem
 from .exploration_engine import ExplorationEngine
+from .exploration_engine_llm import LLMExplorationEngine
 import sys
 import os
 from pathlib import Path
 
 # 添加项目路径
 sys.path.append(str(Path(__file__).parent.parent.parent))
-from enhanced_sql_generator import EnhancedSQLGenerator
+from enhanced_sql_generator import EnhancedSQLGeneratorLPE
 from master_sql_postprocessor import MasterSQLPostProcessor
+from llm_connector_unified import UnifiedLLMConnector
 
 class HybridSQLGenerator:
     """混合SQL生成器"""
@@ -49,19 +51,42 @@ class HybridSQLGenerator:
             self.logger.warning(f"加载配置文件失败: {e}，使用默认配置")
         
         # 初始化组件
-        self.llm_connector = llm_connector
-        self.sql_executor = sql_executor
+        if llm_connector is None:
+            # 如果没有提供连接器，使用统一连接器
+            self.llm_connector = UnifiedLLMConnector(config_path)
+            self.logger.info("使用统一LLM连接器")
+        else:
+            self.llm_connector = llm_connector
         
-        # 初始化经验模式组件
-        self.enhanced_sql_generator = EnhancedSQLGenerator(llm_connector)
+        # 初始化经验模式组件 (使用新的LPE-SQL风格实现)
+        self.enhanced_sql_generator = EnhancedSQLGeneratorLPE(self.llm_connector)
         self.sql_postprocessor = MasterSQLPostProcessor()
         
-        # 初始化探索模式组件
-        self.exploration_engine = ExplorationEngine(
-            config_path=config_path,
-            llm_connector=llm_connector,
-            sql_executor=sql_executor
-        )
+        # 配置经验模式参数
+        self.experience_config = self.config.get('experience_mode', {})
+        self.top_k = self.experience_config.get('top_k', 4)
+        self.correct_rate = self.experience_config.get('correct_rate', 0.5)
+        self.engine = self.experience_config.get('engine', 'qwen2-72b')
+        self.accumulate_knowledge_base = self.experience_config.get('accumulate_knowledge_base', True)
+        self.use_init_knowledge_base = self.experience_config.get('use_init_knowledge_base', True)
+        
+        # 初始化探索模式组件 (支持LLM-based和rule-based两种模式)
+        exploration_mode = self.config.get('exploration_mode', 'llm_based')
+        
+        if exploration_mode == 'llm_based':
+            self.exploration_engine = LLMExplorationEngine(
+                config_path=config_path,
+                llm_connector=self.llm_connector,
+                sql_executor=sql_executor
+            )
+            self.logger.info("使用LLM-based探索模式")
+        else:
+            self.exploration_engine = ExplorationEngine(
+                config_path=config_path,
+                llm_connector=self.llm_connector,
+                sql_executor=sql_executor
+            )
+            self.logger.info("使用rule-based探索模式")
         
         # 配置参数
         self.enable_exploration_fallback = self.config.get('enable_exploration_fallback', True)
@@ -150,72 +175,60 @@ class HybridSQLGenerator:
                             db_path: str,
                             db_schema: Dict[str, Any] = None) -> Tuple[str, bool, Dict[str, Any]]:
         """
-        尝试使用经验模式生成SQL
+        尝试使用经验模式生成SQL (LPE-SQL风格实现)
         
         Args:
             question: 自然语言问题
             db_path: 数据库路径
-            db_schema: 数据库schema信息
+            db_schema: 数据库schema信息 (可选，新实现中不需要)
             
         Returns:
             (SQL, 是否成功, 详细信息)
         """
         try:
-            # 获取详细的schema信息
-            if db_schema is None:
-                db_schema = self.enhanced_sql_generator.get_detailed_schema(db_path)
-            
-            # 使用增强SQL生成器生成SQL
-            sql = self.enhanced_sql_generator.generate_sql_with_schema(
-                question, db_schema, db_path, max_retries=self.max_retries_experience_mode
+            # 使用新的LPE-SQL风格生成器
+            # 注意：新的生成器内部会处理经验检索、schema获取和SQL生成
+            sql = self.enhanced_sql_generator.generate_sql(
+                question=question,
+                db_path=db_path,
+                knowledge=None,  # 可以从配置或问题分析中获取
+                correct_rate=self.correct_rate
             )
             
-            # 后处理SQL
-            processed_sql = self.sql_postprocessor.fix_sql_syntax(sql, db_schema)
-            
-            # 验证SQL语法
-            validation = self.sql_postprocessor.validate_sql_syntax(processed_sql, db_path)
-            
-            if validation['is_valid']:
-                return processed_sql, True, {
-                    'raw_sql': sql,
-                    'processed_sql': processed_sql,
-                    'validation': validation,
-                    'retries_used': 0
-                }
-            else:
-                # 如果验证失败，尝试使用错误反馈机制重新生成
-                error_history = [{
-                    'sql': processed_sql,
-                    'error': validation['error'],
-                    'suggested_fix': validation.get('suggested_fix', '')
-                }]
+            if sql and sql.strip():
+                # 验证SQL语法
+                validation = self.sql_postprocessor.validate_sql_syntax(sql, db_path)
                 
-                retry_sql = self.enhanced_sql_generator.generate_sql_with_schema(
-                    question, db_schema, db_path, max_retries=1, error_history=error_history
-                )
-                
-                retry_processed_sql = self.sql_postprocessor.fix_sql_syntax(retry_sql, db_schema)
-                retry_validation = self.sql_postprocessor.validate_sql_syntax(retry_processed_sql, db_path)
-                
-                if retry_validation['is_valid']:
-                    return retry_processed_sql, True, {
-                        'raw_sql': retry_sql,
-                        'processed_sql': retry_processed_sql,
-                        'validation': retry_validation,
-                        'retries_used': 1,
-                        'first_attempt_error': validation['error']
+                if validation['is_valid']:
+                    return sql, True, {
+                        'raw_sql': sql,
+                        'processed_sql': sql,
+                        'validation': validation,
+                        'retries_used': 0,
+                        'experience_mode': 'lpe_sql_style',
+                        'retrieval_stats': self.enhanced_sql_generator.get_retrieval_stats()
                     }
                 else:
+                    # SQL语法验证失败
                     return "", False, {
-                        'error': f"经验模式生成SQL验证失败: {retry_validation['error']}",
-                        'first_attempt_error': validation['error'],
-                        'second_attempt_error': retry_validation['error']
+                        'error': f"LPE-SQL经验模式生成的SQL验证失败: {validation['error']}",
+                        'validation': validation,
+                        'retrieval_stats': self.enhanced_sql_generator.get_retrieval_stats()
                     }
-        
+            else:
+                # 生成的SQL为空
+                return "", False, {
+                    'error': "LPE-SQL经验模式未能生成有效的SQL查询",
+                    'retrieval_stats': self.enhanced_sql_generator.get_retrieval_stats()
+                }
+                
         except Exception as e:
-            self.logger.error(f"经验模式生成SQL时发生错误: {e}")
-            return "", False, {'error': str(e)}
+            self.logger.error(f"LPE-SQL经验模式生成SQL时发生错误: {e}")
+            error_details = {
+                'error': str(e),
+                'retrieval_stats': self.enhanced_sql_generator.get_retrieval_stats() if hasattr(self, 'enhanced_sql_generator') else 'N/A'
+            }
+            return "", False, error_details
     
     def _try_exploration_mode(self, 
                              question: str, 

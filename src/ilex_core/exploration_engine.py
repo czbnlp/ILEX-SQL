@@ -9,14 +9,14 @@ import yaml
 import logging
 from typing import Dict, List, Any, Optional, Tuple
 from .execution_memory import ExecutionMemory, ExecutionRecord
-from .problem_decomposer_fixed import ProblemDecomposer, SubProblem
+from .problem_decomposer import ProblemDecomposer, SubProblem
 import sys
 import os
 from pathlib import Path
 
 # 添加项目路径
 sys.path.append(str(Path(__file__).parent.parent.parent))
-from enhanced_sql_generator import EnhancedSQLGenerator
+from enhanced_sql_generator import EnhancedSQLGeneratorLPE
 
 class ExplorationEngine:
     """探索引擎类"""
@@ -209,7 +209,7 @@ class ExplorationEngine:
                 
                 # 使用增强的SQL生成器
                 if self.llm_connector:
-                    enhanced_sql_generator = EnhancedSQLGenerator(self.llm_connector)
+                    enhanced_sql_generator = EnhancedSQLGeneratorLPE(self.llm_connector)
                     detailed_schema = enhanced_sql_generator.get_detailed_schema(db_path)
                     sql = enhanced_sql_generator.generate_sql_with_schema(subproblem.description, detailed_schema, db_path)
                 else:

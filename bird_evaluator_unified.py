@@ -11,6 +11,7 @@ import time
 import argparse
 import sys
 import os
+import logging
 from pathlib import Path
 from typing import Dict, List, Tuple, Any, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -23,9 +24,11 @@ from queue import Queue
 sys.path.append('src')
 
 from llm_connector_local import LocalLLMConnector
+from llm_connector_api import APILLMConnector
+from llm_connector_unified import UnifiedLLMConnector
 from sql_executor import SQLExecutor
 from src.ilex_core.sql_generator_hybrid import HybridSQLGenerator
-from enhanced_sql_generator import EnhancedSQLGenerator
+from enhanced_sql_generator import EnhancedSQLGeneratorLPE
 from master_sql_postprocessor import MasterSQLPostProcessor  # pyright: ignore[reportUnusedImport]
 
 
@@ -33,12 +36,13 @@ class UnifiedBIRDEvaluator:
     """统一的BIRD数据集评估器"""
     
     def __init__(self, 
-                 data_dir: str = "data/dev_20240627",
+                 data_dir: str = "data/",
                  db_root: str = "data/dev_databases",
                  max_concurrency: int = 1,
                  use_local_model: bool = True,
                  use_mock: bool = False,
-                 timeout: int = 30):
+                 timeout: int = 30,
+                 use_api_model: bool = False):
         """
         初始化评估器
         
@@ -49,6 +53,7 @@ class UnifiedBIRDEvaluator:
             use_local_model: 是否使用本地模型
             use_mock: 是否使用模拟模式
             timeout: SQL执行超时时间
+            use_api_model: 是否使用API模型（如百度千帆）
         """
         self.data_dir = Path(data_dir)
         self.db_root = Path(db_root)
@@ -56,17 +61,29 @@ class UnifiedBIRDEvaluator:
         self.use_local_model = use_local_model
         self.use_mock = use_mock
         self.timeout = timeout
+        self.use_api_model = use_api_model
+        
+        # 设置日志
+        self.logger = logging.getLogger(__name__)
         
         # 初始化组件
         if self.use_mock:
             self.llm_connector = MockLLMConnector()
             self.sql_executor = MockSQLExecutor()
         else:
-            if use_local_model:
+            if use_api_model:
+                # 使用API模型（如百度千帆）
+                self.llm_connector = UnifiedLLMConnector()
+                self.logger.info("使用API模型连接器")
+            elif use_local_model:
+                # 使用本地vLLM模型
                 self.llm_connector = LocalLLMConnector()
+                self.logger.info("使用本地vLLM模型连接器")
             else:
+                # 使用外部API模型（如OpenAI）
                 from llm_connector import LLMConnector
                 self.llm_connector = LLMConnector()
+                self.logger.info("使用外部API模型连接器")
             
             self.sql_executor = SQLExecutor()
         
@@ -566,14 +583,16 @@ def main():
     parser.add_argument("--concurrency", type=int, default=1, help="并发度")
     parser.add_argument("--mock", action="store_true", help="使用模拟模式")
     parser.add_argument("--remote-model", action="store_true", help="使用远程模型")
+    parser.add_argument("--api-model", action="store_true", help="使用API模型（如百度千帆）")
     
     args = parser.parse_args()
     
     # 创建评估器
     evaluator = UnifiedBIRDEvaluator(
         max_concurrency=args.concurrency,
-        use_local_model=not args.remote_model,
-        use_mock=args.mock
+        use_local_model=not args.remote_model and not args.api_model,
+        use_mock=args.mock,
+        use_api_model=args.api_model
     )
     
     try:

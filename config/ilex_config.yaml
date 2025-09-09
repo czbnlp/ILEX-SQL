@@ -42,3 +42,18 @@ ilex:
     cache_size: 1000             # 缓存大小
     enable_parallel_processing: false  # 是否启用并行处理
     max_workers: 4               # 最大工作线程数
+    
+  # 混合模式配置
+  hybrid:
+    enable_exploration_fallback: true    # 是否启用探索模式回退
+    max_retries_experience_mode: 2       # 经验模式最大重试次数
+    exploration_timeout: 60              # 探索模式超时时间（秒）
+    exploration_mode: 'llm_based'        # 探索模式类型: 'llm_based' 或 'rule_based'
+    
+  # 经验模式配置 (LPE-SQL风格)
+  experience_mode:
+    top_k: 4                    # 检索示例数量
+    correct_rate: 0.5           # 正确示例比例 (0.0-1.0)
+    engine: 'qwen2-72b'         # 引擎名称
+    accumulate_knowledge_base: true     # 是否积累知识库
+    use_init_knowledge_base: true       # 是否使用初始知识库
