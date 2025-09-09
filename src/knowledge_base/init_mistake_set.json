@@ -43,4 +43,6 @@
         "reflective_cot": "### Tip: \nWhen joining tables, ensure that the join condition is correct and that the correct column is being referenced. In the Error SQL Query, the join condition was incorrect, and in the SQL after Reflection, the query was still incorrect because it was trying to return two country codes, but the question was asking for the country codes of the two countries that share the second highest mountain, which requires a different approach. The correct approach is to first find the name of the second highest mountain and then find the country codes of the countries that have this mountain.",
         "ground_truth_sql": "SELECT T1.Code FROM country AS T1 INNER JOIN geo_mountain AS T2 ON T1.Code = T2.Country WHERE T2.Mountain = ( SELECT Name FROM mountain ORDER BY Height DESC LIMIT 1, 1 )",
         "difficulty": ""
+    }
+]
   

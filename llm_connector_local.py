@@ -99,7 +99,7 @@ class LocalLLMConnector:
 
     def __call__(self, prompt: str, **kwargs) -> str:
         """
-        调用本地LLM API
+        调用本地LLM API（统一使用test.py中的call_model_api方式）
         
         Args:
             prompt: 输入提示词
@@ -107,35 +107,26 @@ class LocalLLMConnector:
         Returns:
             LLM生成的响应文本
         """
-        system_prompt = "You are a helpful assistant."
-        
-        # 选择一个可用的客户端（轮询或随机选择）
-        client = self._get_available_client()
-        if not client:
-            return "错误: 没有可用的模型服务"
+        # 导入test.py中的call_model_api函数
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         
         try:
-            start_time = time.time()
+            from test import call_model_api
             
-            completion = client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
-                ],
-            )
+            # 使用test.py中的模型调用方式
+            result = call_model_api(prompt)
             
-            duration = time.time() - start_time
-            answer_dump = completion.model_dump()
-            raw_answer = answer_dump.get("choices", [{}])[0].get("message",{}).get("content","")
-            
-            think_content, json_data = self.extract_content_and_json(raw_answer)
-            
-            # 如果成功提取到JSON数据，返回JSON，否则返回原始回答
-            if json_data:
-                return json_data
+            if result["success"]:
+                # 如果成功提取到JSON数据，返回JSON，否则返回原始回答
+                think_content, json_data = self.extract_content_and_json(result["response"])
+                if json_data:
+                    return json_data
+                else:
+                    return result["response"]
             else:
-                return raw_answer
+                return f"API调用失败: {result['error']}"
             
         except Exception as e:
             print(f"本地LLM API调用失败: {e}")

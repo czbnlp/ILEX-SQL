@@ -30,7 +30,7 @@ class ExecutionRecord:
 class ExecutionMemory:
     """执行记忆管理类"""
     
-    def __init__(self, max_size: int = 10, config_path: str = "../config/ilex_config.yaml"):
+    def __init__(self, max_size: int = 10, config_path: str = "config/ilex_config.yaml"):
         """
         初始化执行记忆
         

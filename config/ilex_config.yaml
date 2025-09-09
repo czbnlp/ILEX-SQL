@@ -4,7 +4,7 @@
 ilex:
   # 模式选择配置
   mode_selection:
-    complexity_threshold: 0.7      # 复杂度阈值，超过此值启用探索模式
+    complexity_threshold: 0.3      # 复杂度阈值，超过此值启用探索模式
     enable_exploration: true       # 是否启用探索模式
     enable_complexity_analysis: true  # 是否启用复杂度分析
     

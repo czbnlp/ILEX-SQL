@@ -9,13 +9,20 @@ import yaml
 import logging
 from typing import Dict, List, Any, Optional, Tuple
 from .execution_memory import ExecutionMemory, ExecutionRecord
-from .problem_decomposer import ProblemDecomposer, SubProblem
+from .problem_decomposer_fixed import ProblemDecomposer, SubProblem
+import sys
+import os
+from pathlib import Path
+
+# 添加项目路径
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from enhanced_sql_generator import EnhancedSQLGenerator
 
 class ExplorationEngine:
     """探索引擎类"""
     
     def __init__(self, 
-                 config_path: str = "../config/ilex_config.yaml",
+                 config_path: str = "config/ilex_config.yaml",
                  llm_connector=None,
                  sql_executor=None):
         """
@@ -177,7 +184,6 @@ class ExplorationEngine:
                 'execution_time': error_time,
                 'steps_taken': step
             }
-    
     def _solve_subproblem(self, 
                          subproblem: SubProblem, 
                          db_path: str,
@@ -195,18 +201,17 @@ class ExplorationEngine:
         """
         self.logger.info(f"解决子问题: {subproblem.description}")
         
-        # 生成子问题解决提示
-        prompt = self._generate_subproblem_prompt(subproblem, db_schema)
-        
         # 重试机制
-        for attempt in range(self.max_retries_per_subquestion):
+        max_retries = getattr(self, 'max_retries_per_subquestion', 3)
+        for attempt in range(max_retries):
             try:
                 start_time = time.time()
                 
-                # 调用LLM生成SQL
+                # 使用增强的SQL生成器
                 if self.llm_connector:
-                    sql_response = self.llm_connector(prompt)
-                    sql = self._extract_sql_from_response(sql_response)
+                    enhanced_sql_generator = EnhancedSQLGenerator(self.llm_connector)
+                    detailed_schema = enhanced_sql_generator.get_detailed_schema(db_path)
+                    sql = enhanced_sql_generator.generate_sql_with_schema(subproblem.description, detailed_schema, db_path)
                 else:
                     # 如果没有LLM连接器，使用简单的SQL生成
                     sql = self._generate_simple_sql(subproblem.description)
@@ -239,7 +244,7 @@ class ExplorationEngine:
                 
             except Exception as e:
                 self.logger.warning(f"子问题解决尝试 {attempt + 1} 失败: {e}")
-                if attempt == self.max_retries_per_subquestion - 1:
+                if attempt == self.max_retries_per_subproblem - 1:
                     return {
                         'success': False,
                         'result': None,
@@ -255,7 +260,7 @@ class ExplorationEngine:
             'sql': None,
             'error': 'Max retries exceeded',
             'execution_time': 0,
-            'attempts': self.max_retries_per_subquestion
+            'attempts': self.max_retries_per_subproblem
         }
     
     def _generate_subproblem_prompt(self, subproblem: SubProblem, db_schema: str) -> str:

@@ -15,16 +15,24 @@
 1. 问题类型分类（sequential/conditional/comparative/aggregation/general）
 2. 分解策略（如何将复杂问题分解为子问题）
 3. 解决模式（子问题的解决顺序和依赖关系）
-4. SQL模式（最终SQL的结构特点）
+4. SQL模式（最终SQL的结构特点，包括表连接、子查询、聚合函数等）
 5. 适用场景（这类经验适用于什么类型的问题）
+6. 关键词识别（识别问题中的关键SQL操作词）
 
 请以JSON格式返回提取的经验：
 {{
   "problem_type": "问题类型",
   "decomposition_strategy": "分解策略描述",
   "solution_pattern": "解决模式描述",
-  "sql_pattern": "SQL模式描述",
+  "sql_pattern": {{
+    "tables_used": ["表1", "表2"],
+    "join_types": ["INNER JOIN", "LEFT JOIN"],
+    "subqueries": true/false,
+    "aggregations": ["COUNT", "SUM", "AVG"],
+    "filters": ["WHERE条件类型"]
+  }},
   "applicable_scenarios": ["适用场景1", "适用场景2"],
+  "key_keywords": ["关键词1", "关键词2"],
   "confidence": 置信度(0-1),
   "tags": ["标签1", "标签2"]
 }}

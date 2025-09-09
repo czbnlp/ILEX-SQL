@@ -30,7 +30,7 @@ class LLMConnector:
     
     def __call__(self, prompt: str, **kwargs) -> str:
         """
-        调用LLM API
+        调用LLM API（统一使用test.py中的call_model_api方式）
         
         Args:
             prompt: 输入提示词
@@ -38,42 +38,25 @@ class LLMConnector:
         Returns:
             LLM生成的响应文本
         """
-        if not self.api_key:
-            return "错误: 未设置API密钥。请在.env文件中设置OPENAI_API_KEY。"
-        
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        data = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": "你是一个专业的SQL查询生成助手。请根据用户的问题和数据库schema生成准确的SQL查询。"},
-                {"role": "user", "content": prompt}
-            ],
-            "max_tokens": 2000,
-            "temperature": 0.7
-        }
+        # 导入test.py中的call_model_api函数
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
         
         try:
-            response = requests.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=data,
-                timeout=30
-            )
-            response.raise_for_status()
+            from test import call_model_api
             
-            result = response.json()
-            return result["choices"][0]["message"]["content"]
+            # 使用test.py中的模型调用方式
+            result = call_model_api(prompt)
             
-        except requests.exceptions.RequestException as e:
+            if result["success"]:
+                return result["response"]
+            else:
+                return f"API调用失败: {result['error']}"
+            
+        except Exception as e:
             print(f"LLM API调用失败: {e}")
             return f"API调用失败: {str(e)}"
-        except Exception as e:
-            print(f"处理响应时发生错误: {e}")
-            return f"处理响应时发生错误: {str(e)}"
     
     def test_connection(self) -> bool:
         """测试API连接"""
