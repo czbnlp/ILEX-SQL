@@ -1,2 +1,34 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Data files
 data/
 LPE-SQL/data/
+
+# Environment files
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Log files
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Virtual environment
+ilex_env/
