@@ -51,7 +51,7 @@ class ExplorationEngine:
             max_size=self.config.get('execution_memory_size', 10),
             config_path=config_path
         )
-        self.problem_decomposer = ProblemDecomposer(config_path)
+        self.problem_decomposer = ProblemDecomposer()  # 现在完全基于LLM
         self.llm_connector = llm_connector
         self.sql_executor = sql_executor
         

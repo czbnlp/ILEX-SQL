@@ -1,0 +1,285 @@
+INFO:sentence_transformers.SentenceTransformer:Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2
+INFO:src.ilex_core.sql_generator_hybrid:使用LLM-based探索模式
+INFO:src.ilex_core.sql_generator_hybrid:开始处理问题: What is the highest eligible free rate for K-12 students in the schools in Alameda County?...
+INFO:src.ilex_core.sql_generator_hybrid:步骤1: 尝试使用经验模式生成SQL...
+INFO:src.ilex_core.sql_generator_hybrid:开始处理问题: Please list the lowest three eligible free rates for students aged 5-17 in continuation schools....
+INFO:src.ilex_core.sql_generator_hybrid:开始处理问题: Please list the zip code of all the charter schools in Fresno County Office of Education....
+INFO:src.ilex_core.sql_generator_hybrid:步骤1: 尝试使用经验模式生成SQL...
+INFO:src.ilex_core.sql_generator_hybrid:步骤1: 尝试使用经验模式生成SQL...
+INFO:src.ilex_core.sql_generator_hybrid:开始处理问题: What is the unabbreviated mailing street address of the school with the highest FRPM count for K-12 ...
+INFO:src.ilex_core.sql_generator_hybrid:步骤1: 尝试使用经验模式生成SQL...
+INFO:src.ilex_core.sql_generator_hybrid:开始处理问题: Please list the phone numbers of the direct charter-funded schools that are opened after 2000/1/1....
+INFO:src.ilex_core.sql_generator_hybrid:步骤1: 尝试使用经验模式生成SQL...
+Loaded knowledge base: 5 correct examples, 5 mistake examples
+开始并发评估BIRD数据集 (dev)，并发度: 5...
+加载了 1534 个BIRD数据集问题
+限制评估问题数量: 10
+并发评估进度:   0%|          | 0/10 [00:00<?, ?it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Batches:   0%|          | 0/1 [00:00<?, ?it/s][A[A
+
+
+Batches:   0%|          | 0/1 [00:00<?, ?it/s][A[A[A
+
+
+
+Batches:   0%|          | 0/1 [00:00<?, ?it/s][A[A[A[A
+
+
+
+
+Batches:   0%|          | 0/1 [00:00<?, ?it/s][A[A[A[A[A
+
+
+Batches: 100%|██████████| 1/1 [00:00<00:00,  5.77it/s][A[A[A
+
+
+
+
+Batches: 100%|██████████| 1/1 [00:00<00:00,  5.79it/s][A[A[A[A[A
+
+Batches: 100%|██████████| 1/1 [00:00<00:00,  5.74it/s][A[A
+
+
+
+Batches: 100%|██████████| 1/1 [00:00<00:00,  5.78it/s][A[A[A[A
+Batches: 100%|██████████| 1/1 [00:00<00:00,  5.72it/s][ABatches: 100%|██████████| 1/1 [00:00<00:00,  5.75it/s]
+Batches: 100%|██████████| 1/1 [00:00<00:00,  5.76it/s]
+Batches: 100%|██████████| 1/1 [00:00<00:00,  5.71it/s]
+Batches: 100%|██████████| 1/1 [00:00<00:00,  5.74it/s]
+Batches: 100%|██████████| 1/1 [00:00<00:00,  5.68it/s]
+INFO:src.ilex_core.sql_generator_hybrid:步骤2: 经验模式失败，切换到探索模式...
+INFO:src.ilex_core.exploration_engine_llm:開始LLM探索模式: What is the unabbreviated mailing street address of the school with the highest FRPM count for K-12 ...
+INFO:src.ilex_core.exploration_engine_llm:步驟 1: 使用LLM分解問題...
+INFO:src.ilex_core.sql_generator_hybrid:步骤2: 经验模式失败，切换到探索模式...
+INFO:src.ilex_core.exploration_engine_llm:開始LLM探索模式: Please list the zip code of all the charter schools in Fresno County Office of Education....
+INFO:src.ilex_core.exploration_engine_llm:步驟 1: 使用LLM分解問題...
+ERROR:src.ilex_core.sql_generator_hybrid:LPE-SQL经验模式生成SQL时发生错误: 'HybridSQLGenerator' object has no attribute 'sql_executor'
+INFO:src.ilex_core.sql_generator_hybrid:步骤2: 经验模式失败，切换到探索模式...
+INFO:src.ilex_core.exploration_engine_llm:開始LLM探索模式: What is the highest eligible free rate for K-12 students in the schools in Alameda County?...
+INFO:src.ilex_core.exploration_engine_llm:步驟 1: 使用LLM分解問題...
+INFO:src.ilex_core.sql_generator_hybrid:步骤2: 经验模式失败，切换到探索模式...
+INFO:src.ilex_core.exploration_engine_llm:開始LLM探索模式: Please list the phone numbers of the direct charter-funded schools that are opened after 2000/1/1....
+INFO:src.ilex_core.exploration_engine_llm:步驟 1: 使用LLM分解問題...
+INFO:src.ilex_core.sql_generator_hybrid:步骤2: 经验模式失败，切换到探索模式...
+INFO:src.ilex_core.exploration_engine_llm:開始LLM探索模式: Please list the lowest three eligible free rates for students aged 5-17 in continuation schools....
+INFO:src.ilex_core.exploration_engine_llm:步驟 1: 使用LLM分解問題...
+ERROR:root:解析LLM響應中的JSON失敗: Expecting value: line 1 column 1 (char 0)
+INFO:src.ilex_core.exploration_engine_llm:問題分解完成，共0個子問題
+INFO:src.ilex_core.exploration_engine_llm:--- 探索步驟 1/5 ---
+INFO:src.ilex_core.exploration_engine_llm:所有可解決的子問題均已完成。
+INFO:src.ilex_core.exploration_engine_llm:步驟 3: 合成最終答案...
+ERROR:root:解析LLM響應中的JSON失敗: Expecting value: line 1 column 1 (char 0)
+INFO:src.ilex_core.exploration_engine_llm:問題分解完成，共0個子問題
+INFO:src.ilex_core.exploration_engine_llm:--- 探索步驟 1/5 ---
+ERROR:root:解析LLM響應中的JSON失敗: Expecting ',' delimiter: line 12 column 10 (char 742)
+INFO:src.ilex_core.exploration_engine_llm:問題分解完成，共0個子問題
+INFO:src.ilex_core.exploration_engine_llm:--- 探索步驟 1/5 ---
+ERROR:root:解析LLM響應中的JSON失敗: Expecting ',' delimiter: line 12 column 10 (char 827)
+INFO:src.ilex_core.exploration_engine_llm:問題分解完成，共0個子問題
+INFO:src.ilex_core.exploration_engine_llm:--- 探索步驟 1/5 ---
+INFO:src.ilex_core.exploration_engine_llm:所有可解決的子問題均已完成。
+INFO:src.ilex_core.exploration_engine_llm:步驟 3: 合成最終答案...
+INFO:src.ilex_core.exploration_engine_llm:所有可解決的子問題均已完成。
+INFO:src.ilex_core.exploration_engine_llm:步驟 3: 合成最終答案...
+INFO:src.ilex_core.exploration_engine_llm:所有可解決的子問題均已完成。
+INFO:src.ilex_core.exploration_engine_llm:步驟 3: 合成最終答案...
+INFO:src.ilex_core.exploration_engine_llm:LLM探索成功生成最終答案。
+INFO:src.ilex_core.sql_generator_hybrid:✓ 探索模式成功生成SQL
+并发评估进度:  10%|█         | 1/10 [00:55<08:20, 55.58s/it]INFO:src.ilex_core.sql_generator_hybrid:开始处理问题: How many schools with an average score in Math greater than 400 in the SAT test are exclusively virt...
+INFO:src.ilex_core.sql_generator_hybrid:步骤1: 尝试使用经验模式生成SQL...
+[4 3]
+[4 3]
+[0 3]
+correct: 2; mistake: 2
+[3 4]
+[0 3]
+correct: 2; mistake: 2
+[2 3]
+[4 3]
+[0 4]
+correct: 2; mistake: 2
+[0 3]
+correct: 2; mistake: 2
+[0 3]
+correct: 2; mistake: 2
+
+Batches:   0%|          | 0/1 [00:00<?, ?it/s][ABatches: 100%|██████████| 1/1 [00:00<00:00, 86.56it/s]
+ERROR:root:解析LLM響應中的JSON失敗: Expecting ',' delimiter: line 20 column 10 (char 1191)
+INFO:src.ilex_core.exploration_engine_llm:問題分解完成，共0個子問題
+INFO:src.ilex_core.exploration_engine_llm:--- 探索步驟 1/5 ---
+INFO:src.ilex_core.exploration_engine_llm:LLM探索成功生成最終答案。
+INFO:src.ilex_core.sql_generator_hybrid:✓ 探索模式成功生成SQL
+并发评估进度:  20%|██        | 2/10 [01:00<03:26, 25.86s/it]INFO:src.ilex_core.sql_generator_hybrid:开始处理问题: Among the schools with the SAT test takers of over 500, please list the schools that are magnet scho...
+INFO:src.ilex_core.sql_generator_hybrid:步骤1: 尝试使用经验模式生成SQL...
+[1 2]
+[0 1]
+correct: 2; mistake: 2
+
+Batches:   0%|          | 0/1 [00:00<?, ?it/s][ABatches: 100%|██████████| 1/1 [00:00<00:00, 74.51it/s]
+INFO:src.ilex_core.exploration_engine_llm:LLM探索成功生成最終答案。
+INFO:src.ilex_core.sql_generator_hybrid:✓ 探索模式成功生成SQL
+INFO:src.ilex_core.sql_generator_hybrid:开始处理问题: What is the phone number of the school that has the highest number of test takers with an SAT score ...
+INFO:src.ilex_core.sql_generator_hybrid:步骤1: 尝试使用经验模式生成SQL...
+并发评估进度:  30%|███       | 3/10 [01:02<01:42, 14.69s/it][3 1]
+[0 4]
+correct: 2; mistake: 2
+
+Batches:   0%|          | 0/1 [00:00<?, ?it/s][ABatches: 100%|██████████| 1/1 [00:00<00:00, 62.59it/s]
+INFO:src.ilex_core.exploration_engine_llm:所有可解決的子問題均已完成。
+INFO:src.ilex_core.exploration_engine_llm:步驟 3: 合成最終答案...
+INFO:src.ilex_core.exploration_engine_llm:LLM探索成功生成最終答案。
+INFO:src.ilex_core.sql_generator_hybrid:✓ 探索模式成功生成SQL
+并发评估进度:  40%|████      | 4/10 [01:04<00:59,  9.84s/it]INFO:src.ilex_core.sql_generator_hybrid:开始处理问题: What is the number of SAT test takers of the schools with the highest FRPM count for K-12 students?...
+INFO:src.ilex_core.sql_generator_hybrid:步骤1: 尝试使用经验模式生成SQL...
+[3 4]
+[0 4]
+correct: 2; mistake: 2
+
+Batches:   0%|          | 0/1 [00:00<?, ?it/s][ABatches: 100%|██████████| 1/1 [00:00<00:00, 60.64it/s]
+INFO:src.ilex_core.sql_generator_hybrid:步骤2: 经验模式失败，切换到探索模式...
+INFO:src.ilex_core.exploration_engine_llm:開始LLM探索模式: How many schools with an average score in Math greater than 400 in the SAT test are exclusively virt...
+INFO:src.ilex_core.exploration_engine_llm:步驟 1: 使用LLM分解問題...
+INFO:src.ilex_core.sql_generator_hybrid:步骤2: 经验模式失败，切换到探索模式...
+INFO:src.ilex_core.exploration_engine_llm:開始LLM探索模式: What is the phone number of the school that has the highest number of test takers with an SAT score ...
+INFO:src.ilex_core.exploration_engine_llm:步驟 1: 使用LLM分解問題...
+INFO:src.ilex_core.sql_generator_hybrid:步骤2: 经验模式失败，切换到探索模式...
+INFO:src.ilex_core.exploration_engine_llm:開始LLM探索模式: Among the schools with the SAT test takers of over 500, please list the schools that are magnet scho...
+INFO:src.ilex_core.exploration_engine_llm:步驟 1: 使用LLM分解問題...
+INFO:src.ilex_core.sql_generator_hybrid:步骤2: 经验模式失败，切换到探索模式...
+INFO:src.ilex_core.exploration_engine_llm:開始LLM探索模式: What is the number of SAT test takers of the schools with the highest FRPM count for K-12 students?...
+INFO:src.ilex_core.exploration_engine_llm:步驟 1: 使用LLM分解問題...
+INFO:src.ilex_core.exploration_engine_llm:LLM探索成功生成最終答案。
+INFO:src.ilex_core.sql_generator_hybrid:✓ 探索模式成功生成SQL
+并发评估进度:  50%|█████     | 5/10 [01:26<01:10, 14.16s/it]INFO:src.ilex_core.sql_generator_hybrid:开始处理问题: Among the schools with the average score in Math over 560 in the SAT test, how many schools are dire...
+INFO:src.ilex_core.sql_generator_hybrid:步骤1: 尝试使用经验模式生成SQL...
+[3 1]
+[0 1]
+correct: 2; mistake: 2
+
+Batches:   0%|          | 0/1 [00:00<?, ?it/s][ABatches: 100%|██████████| 1/1 [00:00<00:00, 69.22it/s]
+INFO:src.ilex_core.exploration_engine_llm:問題分解完成，共1個子問題
+INFO:src.ilex_core.exploration_engine_llm:--- 探索步驟 1/5 ---
+ERROR:root:解析LLM響應中的JSON失敗: Expecting ',' delimiter: line 20 column 10 (char 1152)
+INFO:src.ilex_core.exploration_engine_llm:問題分解完成，共0個子問題
+INFO:src.ilex_core.exploration_engine_llm:--- 探索步驟 1/5 ---
+INFO:src.ilex_core.exploration_engine_llm:所有可解決的子問題均已完成。
+INFO:src.ilex_core.exploration_engine_llm:步驟 3: 合成最終答案...
+INFO:src.ilex_core.sql_generator_hybrid:步骤2: 经验模式失败，切换到探索模式...
+INFO:src.ilex_core.exploration_engine_llm:開始LLM探索模式: Among the schools with the average score in Math over 560 in the SAT test, how many schools are dire...
+INFO:src.ilex_core.exploration_engine_llm:步驟 1: 使用LLM分解問題...
+ERROR:root:解析LLM響應中的JSON失敗: Expecting ',' delimiter: line 20 column 10 (char 1242)
+INFO:src.ilex_core.exploration_engine_llm:問題分解完成，共0個子問題
+INFO:src.ilex_core.exploration_engine_llm:--- 探索步驟 1/5 ---
+INFO:src.ilex_core.exploration_engine_llm:問題分解完成，共2個子問題
+INFO:src.ilex_core.exploration_engine_llm:--- 探索步驟 1/5 ---
+INFO:src.ilex_core.exploration_engine_llm:所有可解決的子問題均已完成。
+INFO:src.ilex_core.exploration_engine_llm:步驟 3: 合成最終答案...
+WARNING:src.ilex_core.exploration_engine_llm:嘗試 1 失敗: (sqlite3.OperationalError) near "AS": syntax error
+[SQL: SELECT 
+  f.School Name AS school_name,
+  f.District Name AS district_name,
+  f.County Name AS county_name,
+  s.NumTstTakr * 100.0 / s.enroll12 AS sat_participation_rate,
+  s.AvgScrRead,
+  s.AvgScrMath,
+  s.AvgScrWrite
+FROM 
+  frpm f
+JOIN 
+  satscores s ON f.CDSCode = s.cds
+WHERE 
+  f.County Name = 'Alameda'
+  AND f.Academic Year = '2014-2015';]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ERROR:src.ilex_core.exploration_engine_llm:LLM探索模式發生錯誤: name 'db极schema' is not defined
+Traceback (most recent call last):
+  File "/Users/chuzhibo/Desktop/ILEX-SQL/src/ilex_core/exploration_engine_llm.py", line 499, in solve_complex_question
+    subproblem_result = self._solve_subproblem_with_correction(next_subproblem, db_path, db_schema)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/chuzhibo/Desktop/ILEX-SQL/src/ilex_core/exploration_engine_llm.py", line 581, in _solve_subproblem_with_correction
+    schema=db极schema,
+           ^^^^^^^^^^
+NameError: name 'db极schema' is not defined
+ERROR:src.ilex_core.sql_generator_hybrid:✗ 探索模式也失败了
+并发评估进度:  60%|██████    | 6/10 [01:56<01:18, 19.69s/it]INFO:src.ilex_core.exploration_engine_llm:LLM探索成功生成最終答案。
+INFO:src.ilex_core.sql_generator_hybrid:✓ 探索模式成功生成SQL
+并发评估进度:  70%|███████   | 7/10 [01:57<00:40, 13.59s/it]ERROR:root:解析LLM響應中的JSON失敗: Expecting ',' delimiter: line 12 column 10 (char 843)
+INFO:src.ilex_core.exploration_engine_llm:問題分解完成，共0個子問題
+INFO:src.ilex_core.exploration_engine_llm:--- 探索步驟 1/5 ---
+INFO:src.ilex_core.exploration_engine_llm:所有可解決的子問題均已完成。
+INFO:src.ilex_core.exploration_engine_llm:步驟 3: 合成最終答案...
+WARNING:src.ilex_core.exploration_engine_llm:嘗試 1 失敗: (sqlite3.OperationalError) near "AS": syntax error
+[SQL: SELECT 
+  frpm.CDSCode,
+  frpm.School Name AS FRPM_School_Name,
+  frpm.District Name AS FRPM_District_Name,
+  frpm.County Name AS FRPM_County_Name,
+  frpm.`Percent (%) Eligible FRPM (K-12)` AS FRPM_Percentage,
+  satscores.sname AS SAT_School_Name,
+  satscores.dname AS SAT_District_Name,
+  satscores.cname AS SAT_County_Name,
+  satscores.AvgScrRead,
+  satscores.AvgScrMath,
+  satscores.AvgScrWrite,
+  schools.School AS Schools_School_Name,
+  schools.District AS Schools_District_Name,
+  schools.County AS Schools_County_Name,
+  schools.City,
+  schools.Zip,
+  schools.Phone
+FROM 
+  frpm
+JOIN 
+  satscores ON frpm.CDSCode = satscores.cds
+JOIN 
+  schools ON frpm.CDSCode = schools.CDSCode
+WHERE 
+  frpm.County Name = 'Alameda';]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ERROR:src.ilex_core.exploration_engine_llm:LLM探索模式發生錯誤: name 'db极schema' is not defined
+Traceback (most recent call last):
+  File "/Users/chuzhibo/Desktop/ILEX-SQL/src/ilex_core/exploration_engine_llm.py", line 499, in solve_complex_question
+    subproblem_result = self._solve_subproblem_with_correction(next_subproblem, db_path, db_schema)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/chuzhibo/Desktop/ILEX-SQL/src/ilex_core/exploration_engine_llm.py", line 581, in _solve_subproblem_with_correction
+    schema=db极schema,
+           ^^^^^^^^^^
+NameError: name 'db极schema' is not defined
+ERROR:src.ilex_core.sql_generator_hybrid:✗ 探索模式也失败了
+并发评估进度:  80%|████████  | 8/10 [02:11<00:27, 13.54s/it]INFO:src.ilex_core.exploration_engine_llm:LLM探索成功生成最終答案。
+INFO:src.ilex_core.sql_generator_hybrid:✓ 探索模式成功生成SQL
+并发评估进度:  90%|█████████ | 9/10 [02:12<00:09,  9.82s/it]INFO:src.ilex_core.exploration_engine_llm:LLM探索成功生成最終答案。
+INFO:src.ilex_core.sql_generator_hybrid:✓ 探索模式成功生成SQL
+并发评估进度: 100%|██████████| 10/10 [02:26<00:00, 11.03s/it]并发评估进度: 100%|██████████| 10/10 [02:26<00:00, 14.65s/it]
+[3 2]
+[0 3]
+correct: 2; mistake: 2
+
+=== BIRD数据集评估统计信息 ===
+总问题数: 10
+正确数: 0
+超时数: 0
+错误数: 10
+准确率: 0.00%
+
+按难度分类:
+  simple: 0/8 (0.00%)
+  moderate: 0/2 (0.00%)
+========================================
+
+=== 混合SQL生成器统计信息 ===
+总问题数: 10
+经验模式成功: 0
+探索模式使用次数: 10
+探索模式成功: 8
+总失败数: 2
+经验模式成功率: 0.00%
+探索模式使用率: 100.00%
+探索模式成功率: 80.00%
+总体成功率: 80.00%
+失败率: 20.00%
+========================================
+
+✓ 评估完成！

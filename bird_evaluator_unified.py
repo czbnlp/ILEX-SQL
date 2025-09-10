@@ -21,7 +21,9 @@ import threading
 from queue import Queue
 
 # 添加项目路径
-sys.path.append('src')
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent))
 
 from llm_connector_local import LocalLLMConnector
 from llm_connector_api import APILLMConnector

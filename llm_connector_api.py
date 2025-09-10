@@ -79,7 +79,7 @@ class APILLMConnector:
     def call_model_api(self, prompt: str, model_name: str = None, temperature: float = None, 
                       max_tokens: int = None, max_retries: int = None) -> Dict[str, Any]:
         """
-        调用模型API的通用函数
+        调用模型API的通用函数（增强稳定性）
         """
         model_name = model_name or self.model_name
         temperature = temperature if temperature is not None else self.temperature
@@ -88,15 +88,23 @@ class APILLMConnector:
         
         headers = {
             'Content-Type': 'application/json; charset=utf-8',
-            'Authorization': f'Bearer {self.api_key}'
+            'Authorization': f'Bearer {self.api_key}',
+            'Accept': 'application/json',
+            'Accept-Encoding': 'gzip, deflate'
         }
         
         payload = {
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": [{
+                "role": "user",
+                "content": prompt[:8000]  # 防止过长提示
+            }],
             "model": model_name,
-            "temperature": temperature,
-            "max_tokens": max_tokens
+            "temperature": min(max(temperature, 0.1), 1.0),  # 确保在合理范围
+            "max_tokens": min(max_tokens, 4000)  # 防止超过限制
         }
+        
+        # 添加重试机制
+        retry_delay = 1
         
         with self.stats_lock:
             self.stats['total_requests'] += 1
