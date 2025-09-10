@@ -105,41 +105,5 @@ ILEX-SQL 是一个高级框架，旨在通过结合基于经验和基于探索�
 ### 运行评估器
 评估BIRD数据集：
 ```bash
-python bird_evaluator_unified.py --split dev --max-questions 100 --output results.json
+python bird_evaluator_unified.py --concurrency 5 --max-questions 10 --output results.json --api-model
 ```
-
-### 测试SQL生成
-测试SQL生成：
-```bash
-python enhanced_sql_generator.py
-```
-
-### 配置
-修改`config/ilex_config.yaml`以自定义SQL生成和评估的设置。
-
-## 贡献
-1. Fork仓库。
-2. 创建新分支：
-   ```bash
-   git checkout -b feature-branch
-   ```
-3. 提交更改：
-   ```bash
-   git commit -m "Add new feature"
-   ```
-4. 推送到分支：
-   ```bash
-   git push origin feature-branch
-   ```
-5. 打开Pull Request。
-
-## 许可证
-此项目基于MIT许可证。有关详细信息，请参阅`LICENSE`文件。
-
-## 鸣谢
-- 感谢SentenceTransformers、FAISS和SQLite的开发者提供的强大工具。
-- 感谢开源社区对LLM开发的贡献。
-
----
-
-有关详细文档，请参阅`docs/`目录。
