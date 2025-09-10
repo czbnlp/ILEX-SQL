@@ -85,7 +85,6 @@ ILEX-SQL is an advanced framework designed for generating, validating, and evalu
   - `correct_set.json`: Stores correct examples for experience-based learning.
   - `init_correct_set.json`: Initial correct examples.
   - `init_mistake_set.json`: Initial mistake examples.
-  - `qwen2-72b_4_True_True_rate_0.5/`: Directory containing vectorized representations of examples.
 
 ## Installation
 1. Clone the repository:
@@ -105,41 +104,5 @@ ILEX-SQL is an advanced framework designed for generating, validating, and evalu
 ### Running the Evaluator
 To evaluate the BIRD dataset:
 ```bash
-python bird_evaluator_unified.py --split dev --max-questions 100 --output results.json
+python bird_evaluator_unified.py --concurrency 5 --max-questions 10 --output results.json --api-model
 ```
-
-### Testing SQL Generation
-To test SQL generation:
-```bash
-python enhanced_sql_generator.py
-```
-
-### Configuration
-Modify `config/ilex_config.yaml` to customize settings for SQL generation and evaluation.
-
-## Contributing
-1. Fork the repository.
-2. Create a new branch:
-   ```bash
-   git checkout -b feature-branch
-   ```
-3. Commit your changes:
-   ```bash
-   git commit -m "Add new feature"
-   ```
-4. Push to the branch:
-   ```bash
-   git push origin feature-branch
-   ```
-5. Open a pull request.
-
-## License
-This project is licensed under the MIT License. See the `LICENSE` file for details.
-
-## Acknowledgments
-- The developers of SentenceTransformers, FAISS, and SQLite for their powerful tools.
-- The open-source community for their contributions to LLM development.
-
----
-
-For detailed documentation, refer to the `docs/` directory.
