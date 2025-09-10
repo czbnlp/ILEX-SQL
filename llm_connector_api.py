@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 from typing import Optional, Dict, Any, List
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
+from openai import OpenAI
 # yaml 库已不再需要，可以移除
 
 class APIResponseError(Exception):
@@ -32,6 +33,7 @@ class APILLMConnector:
         
         # 从.env加载配置
         load_dotenv()
+        self.default_model_type = os.getenv("DEFAULT_MODEL_TYPE", "general_api")
         self.api_url = os.getenv("API_URL", "https://qianfan.baidubce.com/v2/chat/completions")
         self.model_name = os.getenv("API_MODEL", "ernie-4.5-turbo-128k")
         self.api_key = os.getenv("API_KEY", "")
@@ -54,8 +56,15 @@ class APILLMConnector:
         # 验证API密钥
         if not self.api_key:
             self.logger.error("API密钥未设置！请在代码中直接填写 self.api_key 的值。")
-    
-    # _load_config 方法已不再需要，已删除
+
+        if self.default_model_type == "general_api": # 对于openai模型的接口
+            if not self.base_url:
+                raise ValueError("当 DEFAULT_MODEL_TYPE 为 'general_api' 时，必须在 .env 文件中提供 BASE_URL")
+            self.logger.info(f"初始化 OpenAI SDK 客户端，目标 URL: {self.base_url}")
+            self.client = OpenAI(
+                api_key=self.api_key,
+                base_url=self.api_url
+            )
 
     def __call__(self, prompt: str, **kwargs) -> str:
         """
@@ -79,72 +88,71 @@ class APILLMConnector:
     def call_model_api(self, prompt: str, model_name: str = None, temperature: float = None, 
                       max_tokens: int = None, max_retries: int = None) -> Dict[str, Any]:
         """
-        调用模型API的通用函数（增强稳定性）
+        调用模型API的通用函数（增强稳定性），已修正逻辑错误。
         """
         model_name = model_name or self.model_name
         temperature = temperature if temperature is not None else self.temperature
         max_tokens = max_tokens or self.max_tokens
         max_retries = max_retries or self.max_retries
         
-        headers = {
-            'Content-Type': 'application/json; charset=utf-8',
-            'Authorization': f'Bearer {self.api_key}',
-            'Accept': 'application/json',
-            'Accept-Encoding': 'gzip, deflate'
-        }
-        
-        payload = {
-            "messages": [{
-                "role": "user",
-                "content": prompt[:8000]  # 防止过长提示
-            }],
-            "model": model_name,
-            "temperature": min(max(temperature, 0.1), 1.0),  # 确保在合理范围
-            "max_tokens": min(max_tokens, 4000)  # 防止超过限制
-        }
-        
-        # 添加重试机制
-        retry_delay = 1
-        
         with self.stats_lock:
             self.stats['total_requests'] += 1
         
         last_error = None
+    
         for attempt in range(max_retries):
             try:
                 start_time = time.time()
-
-                # ==================== 代码修改处 START ====================
-                # 定义一个空的代理字典，以忽略系统/终端中设置的任何HTTP/HTTPS代理
-                no_proxies = {
-                    "http": None,
-                    "https": None,
-                }
-
-                response = requests.post(
-                    self.api_url,
-                    headers=headers,
-                    json=payload,
-                    timeout=self.timeout,
-                    proxies=no_proxies  # <-- 添加此参数以禁用代理
-                )
-                # ===================== 代码修改处 END =====================
+                response_data = {} # 初始化 response_data
                 
-                if response.status_code != 200:
-                    error_msg = f"HTTP {response.status_code}: {response.reason}"
-                    try:
-                        error_detail = response.json()
-                        error_msg += f" - {error_detail}"
-                    except:
-                        error_msg += f" - {response.text}"
-                    raise APIResponseError(error_msg)
+                if self.default_model_type == "general_api":
+                    completion = self.client.chat.completions.create(
+                        model=model_name,
+                        messages=[
+                            {"role": "system", "content": "You are a helpful AI assistant."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                    )
+                    response_data = completion.model_dump()
+
+                # 内部api
+                elif self.default_model_type == "api":
+                    headers = {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Authorization': f'Bearer {self.api_key}',
+                    }
+                    payload = {
+                        "messages": [{"role": "user", "content": prompt}],
+                        "model": model_name,
+                        "temperature": min(max(temperature, 0.1), 1.0),
+                        "max_tokens": min(max_tokens, 4000)
+                    }
+                    no_proxies = {"http": None, "https": None}
+                    response = requests.post(
+                        self.api_url,
+                        headers=headers,
+                        json=payload,
+                        timeout=self.timeout,
+                        proxies=no_proxies
+                    )
+                    if response.status_code != 200:
+                        error_msg = f"HTTP {response.status_code}: {response.reason}"
+                        try:
+                            error_detail = response.json(); error_msg += f" - {error_detail}"
+                        except:
+                            error_msg += f" - {response.text}"
+                        raise APIResponseError(error_msg)
+                    response_data = response.json()
                 
-                response_data = response.json()
+                # ==================== 修正点 3：将后续处理逻辑统一，对所有模式生效 ====================
                 
                 if 'choices' not in response_data or not response_data['choices']:
                     raise APIResponseError("API响应中缺少'choices'字段或内容为空")
                 
-                answer_content = response_data["choices"][0]["message"]["content"]
+                # 统一从 response_data 中提取内容
+                answer_content = response_data["choices"][0].get("message", {}).get("content", "")
                 time_cost = time.time() - start_time
                 
                 with self.stats_lock:
@@ -154,14 +162,12 @@ class APILLMConnector:
                 try:
                     clean_content = answer_content.strip()
                     if clean_content.startswith("```json"):
-                        clean_content = clean_content[7:]
-                    if clean_content.endswith("```"):
-                        clean_content = clean_content[:-3]
-                    clean_content = clean_content.strip()
+                        clean_content = clean_content[7:].rstrip("```").strip()
                     parsed_result = json.loads(clean_content)
                 except (json.JSONDecodeError, AttributeError):
                     parsed_result = {"raw_response": answer_content}
                 
+                # 统一的成功返回
                 return {
                     "success": True,
                     "response": answer_content,
@@ -171,22 +177,24 @@ class APILLMConnector:
                     "model": model_name
                 }
                 
-            except (APIResponseError, requests.exceptions.RequestException) as e:
+            # 统一的异常处理，增加了对 OpenAI 异常的处理
+            except (APIResponseError, APIError, requests.exceptions.RequestException) as e:
                 last_error = e
                 self.logger.warning(f"API调用错误 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
+                if isinstance(e, RateLimitError) or ("429" in str(e)):
+                    self.logger.info(f"API限速，等待10秒后重试...")
+                    time.sleep(10)
+                    continue # 直接进入下一次重试
             except Exception as e:
                 last_error = e
                 self.logger.warning(f"未知错误 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
             
+            # 统一的重试等待逻辑
             if attempt < max_retries - 1:
-                error_str = str(last_error)
-                if "rate_limit_exceeded" in error_str.lower() or "429" in error_str:
-                    self.logger.info(f"API限速，等待10秒后重试...")
-                    wait_time = 10
-                else:
-                    wait_time = 5 * (attempt + 1)
+                wait_time = 5 * (attempt + 1)
                 time.sleep(wait_time)
-        
+
+        # 循环结束后的统一失败返回
         with self.stats_lock:
             self.stats['failed_requests'] += 1
         

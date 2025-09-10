@@ -10,7 +10,6 @@ import logging
 from typing import Dict, List, Any, Optional, Tuple
 from .execution_memory import ExecutionMemory
 from .problem_decomposer import ProblemDecomposer, SubProblem
-from .exploration_engine import ExplorationEngine
 from .exploration_engine_llm import LLMExplorationEngine
 import sys
 import os
@@ -59,6 +58,11 @@ class HybridSQLGenerator:
         else:
             self.llm_connector = llm_connector
         
+        # 初始化SQL执行器
+        if sql_executor is None:
+            raise ValueError("必须提供一个有效的SQL执行器(sql_executor)。")
+        self.sql_executor = sql_executor
+        
         # 初始化经验模式组件 (使用新的LPE-SQL风格实现)
         self.enhanced_sql_generator = EnhancedSQLGeneratorLPE(self.llm_connector)
         self.sql_postprocessor = MasterSQLPostProcessor()
@@ -74,20 +78,13 @@ class HybridSQLGenerator:
         # 初始化探索模式组件 (支持LLM-based和rule-based两种模式)
         exploration_mode = self.config.get('exploration_mode', 'llm_based')
         
-        if exploration_mode == 'llm_based':
-            self.exploration_engine = LLMExplorationEngine(
-                config_path=config_path,
-                llm_connector=self.llm_connector,
-                sql_executor=sql_executor
-            )
-            self.logger.info("使用LLM-based探索模式")
-        else:
-            self.exploration_engine = ExplorationEngine(
-                config_path=config_path,
-                llm_connector=self.llm_connector,
-                sql_executor=sql_executor
-            )
-            self.logger.info("使用rule-based探索模式")
+        self.exploration_engine = LLMExplorationEngine(
+            config_path=config_path,
+            llm_connector=self.llm_connector,
+            sql_executor=sql_executor
+        )
+        self.logger.info("使用LLM-based探索模式")
+
         
         # 配置参数
         self.enable_exploration_fallback = self.config.get('enable_exploration_fallback', True)
@@ -200,6 +197,9 @@ class HybridSQLGenerator:
                 correct_rate=self.correct_rate
             )
             
+            print(f"\n{'*'*80}")
+            print(f"LPE-SQL经验模式生成的SQL: {sql}")
+            print(f"{'*'*80}\n")
             if sql and sql.strip():
                 # 验证SQL语法
                 validation = self.sql_postprocessor.validate_sql_syntax(sql, db_path)
@@ -370,4 +370,7 @@ def test_hybrid_sql_generator():
 
 
 if __name__ == "__main__":
+    print(f"\n{'*'*80}")
+    print(f"开始执行混合SQL生成器")
+    print(f"{'*'*80}\n")
     test_hybrid_sql_generator()

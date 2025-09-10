@@ -369,4 +369,7 @@ def test_execution_memory():
 
 
 if __name__ == "__main__":
+    print(f"\n{'*'*80}")
+    print(f"开始执行执行内存管理器")
+    print(f"{'*'*80}\n")
     test_execution_memory()

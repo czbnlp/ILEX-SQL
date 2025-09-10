@@ -63,6 +63,10 @@ class LLMProblemDecomposer:
             schema=schema
         )
         
+        print(f"\n{'*'*80}")
+        print(f"开始执行问题分解器")
+        print(f"{'*'*80}\n")
+        
         try:
             response = self.llm_connector(prompt)
             result = self._parse_response(response)

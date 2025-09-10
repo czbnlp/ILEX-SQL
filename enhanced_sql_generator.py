@@ -186,34 +186,36 @@ class TextToSQLRetriever:
 
 # Exact LPE-SQL prompt generation functions
 def generate_examples(question, retrieval, correct_rate=None):
-    """Generate examples for few-shot learning - exact LPE-SQL implementation"""
+    """Generate examples dynamically based on semantic similarity."""
     if retrieval.top_k == 0:
         return ""
     if correct_rate is not None:
         retrieval.correct_rate = correct_rate
-    
+
+    # Retrieve dynamically relevant examples
     correct_examples, mistake_examples = retrieval.get_in_context_examples(question, correct_rate)
-    
+
+    # Simplify examples to focus on core logic
     correct_prompt = '\n\n'.join([
         f"example{index+1}: {{\n" + 
         '\n'.join([f"## {key}: {value}\n" for key, value in example.items() if key != 'difficulty']) + 
         "\n}"
         for index, example in enumerate(correct_examples)
     ])
-    
+
     mistake_prompt = '\n\n'.join([
         f"example{index+1}: {{\n" + 
         '\n'.join([f"## {key}: {value}\n" for key, value in example.items() if key != 'difficulty']) + 
         "\n}"
         for index, example in enumerate(mistake_examples)
     ])
-    
+
     if correct_prompt != "":
-        correct_prompt = f"\n###For your reference, here are some examples of Questions, sql queries, and thought processes related to the Question you're working with\n\n{correct_prompt}"
-    
+        correct_prompt = f"\n### Relevant Examples:\n\n{correct_prompt}"
+
     if mistake_prompt != "":
-        mistake_prompt = f"### Below are examples of mistakes you've made before that are similar to the question you're about to tackle, so please refer to not making the same mistake!\n\n{mistake_prompt}"
-    
+        mistake_prompt = f"### Mistake Examples:\n\n{mistake_prompt}"
+
     return correct_prompt + '\n\n' + mistake_prompt
 
 
@@ -255,32 +257,6 @@ def generate_schema_prompt(sql_dialect, db_path):
             create_table = f"CREATE TABLE {table_name} (\n  " + ",\n  ".join(columns_def) + "\n);"
             schema_parts.append(create_table)
             
-            # Add sample data
-            try:
-                cursor.execute(f"SELECT * FROM {table_name} LIMIT 3;")
-                sample_data = cursor.fetchall()
-                if sample_data:
-                    column_names = [col[1] for col in columns]
-                    schema_parts.append(f"\n/*")
-                    schema_parts.append(f" {len(sample_data)} example rows:")
-                    schema_parts.append(f" SELECT * FROM {table_name} LIMIT {len(sample_data)};")
-                    
-                    # Format the data nicely
-                    col_widths = [max(len(str(name)), max(len(str(row[i])) for row in sample_data)) for i, name in enumerate(column_names)]
-                    
-                    header = " | ".join(name.ljust(width) for name, width in zip(column_names, col_widths))
-                    schema_parts.append(f" {header}")
-                    
-                    separator = " | ".join("-" * width for width in col_widths)
-                    schema_parts.append(f" {separator}")
-                    
-                    for row in sample_data:
-                        data_row = " | ".join(str(cell).ljust(width) for cell, width in zip(row, col_widths))
-                        schema_parts.append(f" {data_row}")
-                    
-                    schema_parts.append(f" */")
-            except:
-                pass
             
             schema_parts.append("")
         
@@ -323,17 +299,20 @@ def generate_instruction_prompt():
 
 
 def generate_common_prompts_sql(db_path, question, sql_dialect, retrieval, knowledge=None, accumulate_knowledge_base=True, correct_rate=None):
-    """Generate complete prompts - exact LPE-SQL implementation"""
+    """Generate complete prompts with stronger constraints."""
     if accumulate_knowledge_base:
         examples = generate_examples(question, retrieval, correct_rate)
     else:
         examples = ""
-    
+
     schema_prompt = generate_schema_prompt(sql_dialect, db_path)
     comment_prompt = generate_comment_prompt(question, sql_dialect, knowledge)
     cot_prompt = generate_cot_prompt()
     instruction_prompt = generate_instruction_prompt()
-    
+
+    # Add stronger constraints to the instruction prompt
+    instruction_prompt += "\nIMPORTANT: STRICTLY answer the current question. DO NOT rely on unrelated patterns from examples.\n"
+
     combined_prompts = "\n\n".join([
         examples, schema_prompt, comment_prompt, cot_prompt, instruction_prompt
     ])
@@ -375,8 +354,17 @@ class EnhancedSQLGeneratorLPE:
                 correct_rate=correct_rate
             )
             
+            print(f"\n{'*'*80}")
+            print(f"经验模型的prompt:\n{prompt}")
+            print(f"{'*'*80}\n")
             # Get SQL from LLM
             response = self.llm_connector(prompt)
+            # Debug: print a short preview of LLM response
+            try:
+                print(f"[EnhancedSQLGenerator] LLM response preview: {str(response)[:500]}")
+            except Exception:
+                pass
+
             sql = self._extract_sql_from_response(response)
             
             # Post-process the SQL
@@ -389,23 +377,122 @@ class EnhancedSQLGeneratorLPE:
             return ""
     
     def _extract_sql_from_response(self, response: str) -> str:
-        """Extract SQL from LLM response - exact logic from original"""
-        sql_patterns = [
-            r'SELECT.*?(?:;|$)',
-            r'select.*?(?:;|$)',
-            r'```sql\s*(SELECT.*?)\s*```',
-            r'```(SELECT.*?)```'
-        ]
+        """Extract SQL from LLM response with enhanced debugging and robust parsing"""
+        print("\n[DEBUG] Starting SQL extraction from response")
+        print(f"[DEBUG] Raw response type: {type(response)}")
+        print(f"[DEBUG] Raw response preview: {str(response)[:200]}")
         
-        for pattern in sql_patterns:
-            matches = re.findall(pattern, response, re.IGNORECASE | re.DOTALL)
+        # normalize to string
+        if response is None:
+            print("[DEBUG] Response is None")
+            return ""
+        if not isinstance(response, str):
+            try:
+                response = str(response)
+                print("[DEBUG] Converted non-string response to string")
+            except Exception as e:
+                print(f"[DEBUG] Error converting response to string: {e}")
+                response = repr(response)
+
+        # strip common markdown/code fences
+        resp = response.strip()
+        print(f"[DEBUG] Stripped response length: {len(resp)}")
+        
+        # remove leading/trailing ``` blocks
+        if resp.startswith('```') and resp.endswith('```'):
+            print("[DEBUG] Found code fence markers")
+            parts = resp.split('\n')
+            if len(parts) >= 3:
+                resp = '\n'.join(parts[1:-1]).strip()
+                print("[DEBUG] Removed code fence markers")
+
+        # try direct SQL patterns with enhanced robustness
+        sql_patterns = [
+            (r'```sql\s*(SELECT[\s\S]*?)\s*```', "SQL code block"),
+            (r'```\s*(SELECT[\s\S]*?)\s*```', "Generic code block"),
+            (r'SELECT\s+(?:ALL\s+|DISTINCT\s+)?(?:TOP\s+\d+\s+)?[\w\s,.*()]+(?:\s+FROM[\s\S]*?);', "Complete SQL statement"),
+            (r'SELECT\s+(?:ALL\s+|DISTINCT\s+)?(?:TOP\s+\d+\s+)?[\w\s,.*()]+(?:\s+FROM[\s\S]*$)', "SQL without semicolon"),
+            (r'SELECT[\s\S]*?(?:FROM|WHERE|GROUP BY|ORDER BY)[\s\S]*', "Partial SQL pattern")
+        ]
+
+        for pattern, pattern_name in sql_patterns:
+            matches = re.findall(pattern, resp, re.IGNORECASE)
             if matches:
+                print(f"[DEBUG] Found SQL using pattern: {pattern_name}")
                 sql = matches[0].strip()
                 if not sql.endswith(';'):
                     sql += ';'
+                print(f"[DEBUG] Extracted SQL: {sql[:200]}")
                 return sql
+
+        # enhanced JSON extraction
+        try:
+            # try to find ALL json-like structures
+            json_candidates = re.findall(r'{[^{}]*}', resp)
+            for json_str in json_candidates:
+                try:
+                    parsed = json.loads(json_str)
+                    print("[DEBUG] Successfully parsed JSON structure")
+                    
+                    # common keys that may contain sql, with more variations
+                    sql_keys = ['sql', 'SQL', 'query', 'final_sql', 'answer', 'result', 
+                              'sqlQuery', 'generated_sql', 'final_query', 'sql_query']
+                    
+                    for key in sql_keys:
+                        if isinstance(parsed, dict):
+                            # try direct key
+                            if key in parsed and isinstance(parsed[key], str):
+                                candidate = parsed[key].strip()
+                                print(f"[DEBUG] Found SQL in JSON key: {key}")
+                                
+                                # strip code fences if any
+                                if candidate.startswith('```') and candidate.endswith('```'):
+                                    candidate = candidate.strip('`\n ')
+                                
+                                if candidate.upper().startswith('SELECT'):
+                                    if not candidate.endswith(';'):
+                                        candidate += ';'
+                                    print(f"[DEBUG] Extracted SQL from JSON: {candidate[:200]}")
+                                    return candidate
+                                
+                            # try nested structures
+                            for k, v in parsed.items():
+                                if isinstance(v, dict) and key in v and isinstance(v[key], str):
+                                    candidate = v[key].strip()
+                                    if candidate.upper().startswith('SELECT'):
+                                        if not candidate.endswith(';'):
+                                            candidate += ';'
+                                        print(f"[DEBUG] Extracted SQL from nested JSON: {candidate[:200]}")
+                                        return candidate
+                
+                except json.JSONDecodeError as e:
+                    print(f"[DEBUG] JSON parse error: {e}")
+                    continue
+                    
+        except Exception as e:
+            print(f"[DEBUG] Error in JSON extraction: {e}")
+
+        # enhanced fallback regex with lookahead
+        print("[DEBUG] Attempting fallback SQL extraction")
+        fallback_patterns = [
+            r'SELECT\s+(?=[\w\s,.*()])',  # Lookahead for valid SELECT statement start
+            r'SELECT\s+(?:\w+|\*)\s+FROM',  # Basic SELECT ... FROM pattern
+            r'SELECT\s+(?:(?!\bFROM\b).)*\bFROM\b.*'  # Everything between SELECT and FROM
+        ]
         
-        return response.strip()
+        for pattern in fallback_patterns:
+            fallback = re.search(pattern, resp, re.IGNORECASE | re.DOTALL)
+            if fallback:
+                sql = fallback.group(0).strip()
+                # clean up and ensure it's a complete statement
+                sql = re.sub(r'\s+', ' ', sql)  # normalize whitespace
+                if not sql.endswith(';'):
+                    sql += ';'
+                print(f"[DEBUG] Extracted SQL using fallback pattern: {sql[:200]}")
+                return sql
+
+        print("[DEBUG] No SQL found, returning cleaned response")
+        return resp.strip()
     
     def add_experience(self, question: str, sql: str, correct: bool = True, **kwargs):
         """Add experience to knowledge base"""
@@ -513,33 +600,6 @@ class EnhancedSQLGeneratorLPE:
             
             create_table = f"CREATE TABLE {table_name} (\n  " + ",\n  ".join(columns_def) + "\n);"
             schema_parts.append(create_table)
-            
-            # 添加示例数据
-            if table_name in schema['sample_data']:
-                sample_rows = schema['sample_data'][table_name]
-                if sample_rows:
-                    column_names = [col['name'] for col in table_info['columns']]
-                    
-                    schema_parts.append(f"\n/*")
-                    schema_parts.append(f" {len(sample_rows)} example rows:")
-                    schema_parts.append(f" SELECT * FROM {table_name} LIMIT {len(sample_rows)};")
-                    
-                    # 格式化显示示例数据
-                    col_widths = [max(len(str(col)), max(len(str(row[i])) for row in sample_rows)) for i, col in enumerate(column_names)]
-                    
-                    header = " | ".join(col.ljust(width) for col, width in zip(column_names, col_widths))
-                    schema_parts.append(f" {header}")
-                    
-                    separator = " | ".join("-" * width for width in col_widths)
-                    schema_parts.append(f" {separator}")
-                    
-                    for row in sample_rows:
-                        data_row = " | ".join(str(cell).ljust(width) for cell, width in zip(row, col_widths))
-                        schema_parts.append(f" {data_row}")
-                    
-                    schema_parts.append(f" */")
-            
-            schema_parts.append("")
         
         return "\n".join(schema_parts)
     

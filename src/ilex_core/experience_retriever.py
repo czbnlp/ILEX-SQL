@@ -338,4 +338,7 @@ def test_experience_retriever():
 
 
 if __name__ == "__main__":
+    print(f"\n{'*'*80}")
+    print(f"开始执行经验检索器")
+    print(f"{'*'*80}\n")
     test_experience_retriever()

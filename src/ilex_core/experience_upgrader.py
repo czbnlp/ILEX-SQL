@@ -603,4 +603,7 @@ def test_experience_upgrader():
 
 
 if __name__ == "__main__":
+    print(f"\n{'*'*80}")
+    print(f"开始执行经验升级器")
+    print(f"{'*'*80}\n")
     test_experience_upgrader()

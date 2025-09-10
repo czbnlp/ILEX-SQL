@@ -126,14 +126,20 @@ To compare the sales of two departments, I need to calculate the total sales for
 ```
 
 #### Your Task:
-Database Schema:
+#### Database Schema:
 {schema}
-Original Question:
+
+#### Original Question:
 {question}
-Execution Context (Previous Results):
+
+#### Execution Context (Previous Results):
 {context}
-Thought Process:
-Response:
+
+#### Thought Process:
+I need to break down the question `{question}` into smaller steps. First, I will...
+
+#### Response:
+```json
 """
 
         self.subproblem_selection_prompt = """
@@ -194,78 +200,58 @@ You are managing the execution of a complex SQL query exploration. Based on the 
             return self._fallback_decomposition(question, context, db_schema)
 
     def get_next_subproblem(self, original_question: str, context: str, solved_subproblems: List[int], all_subproblems: List[LLMSubProblem]) -> Optional[LLMSubProblem]:
+        """
+        Select the next subproblem to solve, ensuring no repetition of already solved subproblems.
+        """
         all_subproblems_json = [sp.__dict__ for sp in all_subproblems]
-        
+
         prompt = self.subproblem_selection_prompt.format(
             original_question=original_question,
             all_subproblems=json.dumps(all_subproblems_json, ensure_ascii=False, indent=2),
             solved_subproblems=json.dumps(solved_subproblems),
             context=context
         )
-        
+
         try:
             response = self.llm_connector(prompt)
             selection_result = self._parse_json_from_response(response)
-            
+
             if selection_result.get('completion_status') == 'completed':
                 return None
-                
+
             next_id = selection_result.get('next_subproblem_id')
             if next_id is None:
                 return self._fallback_subproblem_selection(all_subproblems, solved_subproblems)
 
             for subproblem in all_subproblems:
-                if subproblem.id == next_id:
+                if subproblem.id == next_id and next_id not in solved_subproblems:
                     return subproblem
+
             return None
-            
+
         except Exception as e:
-            logging.error(f"LLM子問題選擇失敗: {e}")
+            logging.error(f"Failed to select next subproblem: {e}")
             return self._fallback_subproblem_selection(all_subproblems, solved_subproblems)
 
     def _parse_json_from_response(self, response: str) -> Dict[str, Any]:
-        """增强版JSON解析，处理各种LLM响应格式"""
+        """
+        Parse JSON from LLM response with enhanced error handling.
+        """
         try:
-            # 尝试多种方式提取JSON
-            json_str = response
-            
-            # 1. 尝试提取markdown代码块中的JSON
-            if "```json" in response:
-                json_str = response.split("```json")[1].split("```")[0].strip()
-            elif "```" in response:
-                json_str = response.split("```")[1].split("```")[0].strip()
-            
-            # 2. 处理可能的转义字符
-            json_str = json_str.replace('\\"', '"').replace("\\'", "'")
-            
-            # 3. 修复常见JSON格式错误
-            json_str = json_str.replace("'", '"')  # 单引号转双引号
-            json_str = re.sub(r',\s*}', '}', json_str)  # 修复多余的逗号
-            json_str = re.sub(r',\s*]', ']', json_str)  # 修复多余的逗号
-            
-            # 4. 尝试解析
-            try:
+            json_start = response.find('{')
+            json_end = response.rfind('}') + 1
+            if json_start != -1 and json_end != -1:
+                json_str = response[json_start:json_end]
                 return json.loads(json_str)
-            except json.JSONDecodeError as e:
-                # 尝试修复不完整的JSON
-                if not json_str.strip().startswith("{"):
-                    json_str = "{" + json_str
-                if not json_str.strip().endswith("}"):
-                    json_str = json_str + "}"
-                return json.loads(json_str)
-                
+            else:
+                raise ValueError("No valid JSON structure found in response.")
+        except json.JSONDecodeError as e:
+            logging.error(f"JSON decoding failed: {e}")
+            return {}
         except Exception as e:
-            logging.error(f"解析LLM响应失败，尝试最后修复: {e}")
-            try:
-                # 最后尝试提取第一个{...}之间的内容
-                json_start = response.find('{')
-                json_end = response.rfind('}') + 1
-                if json_start != -1 and json_end != -1:
-                    return json.loads(response[json_start:json_end])
-            except:
-                logging.error("所有JSON解析尝试均失败")
-                return {}
-
+            logging.error(f"Unexpected error while parsing JSON: {e}")
+            return {}
+    
     def _fallback_decomposition(self, question: str, context: str, db_schema: str) -> List[LLMSubProblem]:
         """回退分解方法"""
         return [
@@ -452,15 +438,15 @@ class LLMExplorationEngine:
     """
     # 新增: SQL 自我修正提示
         self.sql_correction_prompt = """
-    You are an expert SQL debugger. The previous SQL query you generated failed with an error. Your task is to fix it.
-    Task:
-    First, analyze the error message and the original SQL in the "Thought Process" section to understand what went wrong.
-    Then, provide ONLY the corrected SQL query in the "Fixed SQL Query" section.
-    Database Schema:
+    You are an expert SQL debugger. The previous SQL query failed. Your task is to analyze the error and provide a corrected SQL query.
+
+    ### Database Schema:
     {schema}
-    Original Subproblem:
+
+    ### Original Subproblem:
     {subproblem_description}
-    Faulty SQL Query:```sql
+
+    ### Faulty SQL Query:```sql
     {faulty_sql}
     ```
     ### Execution Error Message:
@@ -468,35 +454,38 @@ class LLMExplorationEngine:
 
     ### Thought Process:
 
-    ### Fixed SQL Query:
+    First, I will analyze the error message {error_message}. It indicates a problem with the SQL syntax in the query {faulty_sql}. I need to compare the query with the schema {schema} and the subproblem description to identify the mistake and correct it.
+    Fixed SQL Query:
     """
 
         self.synthesis_prompt = """
-    You are synthesizing the final answer from multiple exploration steps.
+You are an expert SQL synthesizer. Your task is to combine the results from the execution history to create a single, final SQL query that answers the user's original question.
 
-    ### Task:
-    1. First, analyze the execution history and the original question to determine how to combine the results in the "Thought Process" section.
-    2. Then, provide a final SQL query or a conclusive text answer based on your analysis.
+### Original Question:
+{original_question}
 
-    ### Original Question:
-    {original_question}
+### Database Schema:
+{schema}
 
-    ### Database Schema:
-    {schema}
+### Execution History (All Subproblem Results):
+{execution_history}
 
-    ### Execution History (All Subproblem Results):
-    {execution_history}
+### Thought Process:
+Based on the execution history, I have gathered the necessary pieces of information. Now I need to combine them to answer `{original_question}`. I will construct a final SQL query, possibly using subqueries or CTEs based on the successful steps.
 
-    ### Thought Process:
-
-    ### Final Answer (SQL or Text):
-    """
+### Final SQL Query:
+```sql
+"""
 
     def solve_complex_question(self, original_question: str, db_path: str, db_schema: str = "") -> Tuple[str, bool, Dict[str, Any]]:
         start_time = time.time()
         self.exploration_stats['total_explorations'] += 1
         self.logger.info(f"開始LLM探索模式: {original_question[:100]}...")
         self.execution_memory.clear_memory()
+        
+        print(f"\n{'*'*80}")
+        print(f"开始执行LLM探索引擎")
+        print(f"{'*'*80}\n")
         
         try:
             self.logger.info("步驟 1: 使用LLM分解問題...")
@@ -624,7 +613,9 @@ class LLMExplorationEngine:
         }
 
     def _synthesize_final_answer(self, original_question: str, db_schema: str) -> Tuple[str, bool]:
-        """使用LLM合成最終答案（可以是SQL或文字）"""
+        """
+        Synthesize the final answer as a valid SQL query.
+        """
         try:
             execution_history = self.execution_memory.get_context_for_prompt(self.llm_connector)
             prompt = self.synthesis_prompt.format(
@@ -633,17 +624,18 @@ class LLMExplorationEngine:
                 execution_history=execution_history
             )
             final_response = self.llm_connector(prompt)
-            # 提取 "Final Answer" 後的內容
-            final_answer_marker = "### Final Answer (SQL or Text):"
+
+            # Enforce SQL synthesis
+            final_answer_marker = "### Final SQL Query:"
             answer_pos = final_response.find(final_answer_marker)
             if answer_pos != -1:
                 final_answer = final_response[answer_pos + len(final_answer_marker):].strip()
                 return final_answer, True if final_answer else False
-            
-            return final_response, True # 如果找不到標記，返回整個響應
+
+            return "", False
 
         except Exception as e:
-            logging.error(f"LLM最終答案合成失敗: {e}")
+            logging.error(f"Failed to synthesize final answer: {e}")
             return "", False
 
     def _extract_sql_from_response(self, response: str, marker: str) -> str:
